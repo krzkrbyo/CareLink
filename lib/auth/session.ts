@@ -1,9 +1,11 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database";
+import { enrichEldersWithAvatars, type ElderWithAvatar } from "@/lib/data/elder-display";
 
 export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 export type Elder = Database["public"]["Tables"]["elders"]["Row"];
+export type CaregiverElder = ElderWithAvatar;
 
 export async function getSessionUser() {
   const supabase = await createClient();
@@ -56,21 +58,22 @@ export async function requireElder() {
   return { user, elder };
 }
 
-export async function getCaregiverElders(caregiverId: string) {
+export async function getCaregiverElders(caregiverId: string): Promise<CaregiverElder[]> {
   const supabase = await createClient();
   const { data: links } = await supabase
     .from("caregiver_elder_links")
     .select("elder_id, relationship, elders(*)")
     .eq("caregiver_id", caregiverId);
 
-  return (
+  const elders =
     links?.flatMap((l) => {
       const raw = l.elders as Elder | Elder[] | null;
       if (!raw) return [];
       const elder = Array.isArray(raw) ? raw[0] : raw;
       return [{ ...elder, relationship: l.relationship }];
-    }) ?? []
-  );
+    }) ?? [];
+
+  return enrichEldersWithAvatars(elders);
 }
 
 export async function requireCaregiverElderAccess(elderId: string) {

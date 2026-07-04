@@ -89,10 +89,17 @@ export async function resetDemoData() {
     elder_id: elderId,
     name: "Pastilla para la presión",
     dose: "1 tableta",
-    time: "08:00 AM",
+    time: "08:00",
     scheduled_time: "08:00:00",
-    frequency: "daily",
+    frequency: "1x/día",
     notes: "Tomar con agua",
+    start_date: new Date().toISOString().slice(0, 10),
+    end_date: null,
+    schedule: {
+      times: ["08:00"],
+      daysOfWeek: [1, 2, 3, 4, 5, 6, 7],
+    },
+    calendar_export_enabled: true,
     active: true,
   });
 

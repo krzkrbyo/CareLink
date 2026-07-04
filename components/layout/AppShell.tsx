@@ -12,11 +12,14 @@ import {
   X,
   ChevronRight,
   LayoutGrid,
+  Settings,
+  UserCog,
 } from "lucide-react";
 import { useState } from "react";
 import { signOut } from "@/app/actions/auth";
 import { cn } from "@/lib/utils";
-import type { Elder } from "@/lib/auth/session";
+import { UserAvatar } from "@/components/ui/user-avatar";
+import type { CaregiverElder } from "@/lib/auth/session";
 
 interface NavLink {
   href: string;
@@ -30,7 +33,8 @@ interface AppShellProps {
   children: React.ReactNode;
   role: "caregiver" | "elder";
   userName: string;
-  elders?: Elder[];
+  avatarUrl?: string | null;
+  elders?: CaregiverElder[];
   currentElderId?: string;
 }
 
@@ -44,6 +48,7 @@ export function AppShell({
   children,
   role,
   userName,
+  avatarUrl = null,
   elders = [],
   currentElderId,
 }: AppShellProps) {
@@ -85,6 +90,13 @@ export function AppShell({
           description: "Medicamentos, citas y dieta",
           icon: ClipboardList,
         },
+        {
+          href: `/cuidador/${activeElderId}/perfil`,
+          label: "Perfil y ajustes",
+          description: "Foto, datos y notificaciones",
+          icon: UserCog,
+          match: (p) => p.includes(`/cuidador/${activeElderId}/perfil`),
+        },
       ]
     : [];
 
@@ -94,9 +106,17 @@ export function AppShell({
       label: "Mi día",
       description: "Rutina, bienestar y contacto",
       icon: Heart,
-      match: (p) => p.startsWith("/adulto"),
+      match: (p) => p === "/adulto",
     },
   ];
+
+  const caregiverAccountLink: NavLink = {
+    href: "/configuracion",
+    label: "Mi cuenta",
+    description: "Tu perfil como cuidador",
+    icon: Settings,
+    match: (p) => p.startsWith("/configuracion"),
+  };
 
   const mainLinks = role === "caregiver" ? caregiverMainLinks : elderLinks;
   const contextualLinks = role === "caregiver" ? caregiverElderLinks : [];
@@ -136,21 +156,42 @@ export function AppShell({
   const NavContent = () => (
     <>
       <div className="mb-6 flex items-center gap-3 px-2">
-        <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-care-accent-dark text-white shadow-sm">
-          <Heart className="h-5 w-5" />
-        </div>
-        <div className="min-w-0">
+        {role === "caregiver" ? (
+          <Link href="/configuracion" onClick={() => setMobileOpen(false)}>
+            <UserAvatar name={userName} avatarUrl={avatarUrl} size="md" />
+          </Link>
+        ) : (
+          <UserAvatar name={userName} avatarUrl={avatarUrl} size="md" />
+        )}
+        <div className="min-w-0 flex-1">
           <p className="font-bold text-care-foreground">CareLink</p>
-          <p className="truncate text-sm text-care-muted">{userName}</p>
+          {role === "caregiver" ? (
+            <Link
+              href="/configuracion"
+              onClick={() => setMobileOpen(false)}
+              className="block truncate text-sm text-care-muted hover:text-care-accent-dark"
+            >
+              {userName}
+            </Link>
+          ) : (
+            <p className="truncate text-sm text-care-muted">{userName}</p>
+          )}
         </div>
       </div>
 
       {role === "caregiver" && activeElder && (
-        <div className="mb-5 rounded-xl bg-care-secondary/30 px-3 py-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-care-muted-light">
-            Viendo ahora
-          </p>
-          <p className="mt-1 truncate font-bold text-care-foreground">{activeElder.full_name}</p>
+        <div className="mb-5 flex items-center gap-3 rounded-xl bg-care-secondary/30 px-3 py-3">
+          <UserAvatar
+            name={activeElder.full_name}
+            avatarUrl={activeElder.avatar_url}
+            size="sm"
+          />
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-wide text-care-muted-light">
+              Viendo ahora
+            </p>
+            <p className="truncate font-bold text-care-foreground">{activeElder.full_name}</p>
+          </div>
         </div>
       )}
 
@@ -172,9 +213,11 @@ export function AppShell({
                     : "text-care-muted hover:bg-care-secondary/30"
                 )}
               >
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-care-accent/30 text-xs font-bold text-care-accent-darker">
-                  {e.full_name.charAt(0)}
-                </span>
+                <UserAvatar
+                  name={e.full_name}
+                  avatarUrl={e.avatar_url}
+                  size="sm"
+                />
                 <span className="truncate">{e.full_name}</span>
               </Link>
             ))}
@@ -191,10 +234,31 @@ export function AppShell({
         ))}
       </nav>
 
-      {contextualLinks.length > 0 && (
+      {role === "caregiver" && (
+        <>
+          <div className="mb-2 mt-5 px-2 text-xs font-semibold uppercase tracking-wide text-care-muted-light">
+            Cuenta
+          </div>
+          <nav className="flex flex-col gap-1">
+            <NavLinkItem link={caregiverAccountLink} />
+          </nav>
+        </>
+      )}
+
+      {contextualLinks.length > 0 && activeElder && (
         <>
           <div className="mb-2 mt-5 px-2 text-xs font-semibold uppercase tracking-wide text-care-muted-light">
             Seguimiento
+          </div>
+          <div className="mb-2 flex items-center gap-2 px-2">
+            <UserAvatar
+              name={activeElder.full_name}
+              avatarUrl={activeElder.avatar_url}
+              size="sm"
+            />
+            <span className="truncate text-sm font-semibold text-care-foreground">
+              {activeElder.full_name}
+            </span>
           </div>
           <nav className="flex flex-col gap-1">
             {contextualLinks.map((link) => (
@@ -235,6 +299,7 @@ export function AppShell({
           icon: Users,
           match: (p) => p === "/cuidador",
         },
+        caregiverAccountLink,
       ]
     : [];
 
@@ -242,7 +307,15 @@ export function AppShell({
     <div className="min-h-dvh bg-care-primary">
       <header className="sticky top-0 z-40 flex items-center justify-between border-b border-care-secondary/50 bg-white/90 px-4 py-3 backdrop-blur-sm lg:hidden">
         <div className="flex min-w-0 items-center gap-2">
-          <Heart className="h-6 w-6 shrink-0 text-care-accent-dark" />
+          {role === "caregiver" && activeElder ? (
+            <UserAvatar
+              name={activeElder.full_name}
+              avatarUrl={activeElder.avatar_url}
+              size="sm"
+            />
+          ) : (
+            <Heart className="h-6 w-6 shrink-0 text-care-accent-dark" />
+          )}
           <div className="min-w-0">
             <span className="block truncate font-bold text-care-foreground">CareLink</span>
             {role === "caregiver" && activeElder && (
@@ -284,12 +357,16 @@ export function AppShell({
           {showMobileBottomNav && (
           <nav
             aria-label="Acceso rápido"
-            className="fixed inset-x-0 bottom-0 z-40 border-t border-care-secondary/50 bg-white/95 px-2 py-2 backdrop-blur-sm lg:hidden"
+            className="fixed inset-x-0 bottom-0 z-40 border-t border-care-secondary/50 bg-white/95 px-1 py-2 backdrop-blur-sm lg:hidden"
           >
-            <div className="mx-auto flex max-w-lg justify-around gap-1">
+            <div className="mx-auto flex max-w-lg justify-around gap-0.5">
               {mobileBottomLinks.map((link) => {
                 const Icon = link.icon;
                 const active = isActive(pathname, link.href, link.match);
+                const isElderContextLink =
+                  activeElder &&
+                  activeElderId &&
+                  link.href.startsWith(`/cuidador/${activeElderId}/`);
                 return (
                   <Link
                     key={link.href}
@@ -301,7 +378,15 @@ export function AppShell({
                         : "text-care-muted"
                     )}
                   >
-                    <Icon className="h-5 w-5" />
+                    {isElderContextLink ? (
+                      <UserAvatar
+                        name={activeElder.full_name}
+                        avatarUrl={activeElder.avatar_url}
+                        size="sm"
+                      />
+                    ) : (
+                      <Icon className="h-5 w-5" />
+                    )}
                     <span className="truncate">{link.label}</span>
                   </Link>
                 );

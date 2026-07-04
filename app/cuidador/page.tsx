@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { AddElderForm } from "@/components/caregiver/AddElderForm";
 import { PageHeader } from "@/components/layout/page-header";
 import { SectionHeader } from "@/components/layout/section-header";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { IconBox } from "@/components/ui/icon-box";
 
 export default async function CuidadorPage() {
@@ -43,9 +44,12 @@ export default async function CuidadorPage() {
                   <Card className="transition-all hover:border-care-accent/50 hover:shadow-md">
                     <CardContent className="flex items-center justify-between gap-4 p-4">
                       <div className="flex min-w-0 items-center gap-4">
-                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-care-secondary/60 text-care-foreground">
-                          <span className="text-lg font-bold">{elder.full_name.charAt(0)}</span>
-                        </div>
+                        <UserAvatar
+                          name={elder.full_name}
+                          avatarUrl={elder.avatar_url}
+                          size="md"
+                          className="rounded-2xl"
+                        />
                         <div className="min-w-0">
                           <p className="truncate text-lg font-bold text-care-foreground">
                             {elder.full_name}

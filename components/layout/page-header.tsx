@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { UserAvatar } from "@/components/ui/user-avatar";
 
 interface Breadcrumb {
   label: string;
@@ -12,6 +13,10 @@ interface PageHeaderProps {
   description?: string;
   breadcrumbs?: Breadcrumb[];
   className?: string;
+  avatar?: {
+    name: string;
+    url?: string | null;
+  };
 }
 
 export function PageHeader({
@@ -19,6 +24,7 @@ export function PageHeader({
   description,
   breadcrumbs,
   className,
+  avatar,
 }: PageHeaderProps) {
   return (
     <header className={cn("mb-8", className)}>
@@ -38,8 +44,15 @@ export function PageHeader({
           ))}
         </nav>
       )}
-      <h1 className="text-2xl font-bold text-care-foreground lg:text-3xl">{title}</h1>
-      {description && <p className="mt-2 max-w-2xl text-care-muted">{description}</p>}
+      <div className="flex items-start gap-4">
+        {avatar && (
+          <UserAvatar name={avatar.name} avatarUrl={avatar.url} size="lg" className="mt-0.5" />
+        )}
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold text-care-foreground lg:text-3xl">{title}</h1>
+          {description && <p className="mt-2 max-w-2xl text-care-muted">{description}</p>}
+        </div>
+      </div>
     </header>
   );
 }

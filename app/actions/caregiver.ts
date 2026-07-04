@@ -4,8 +4,14 @@ import { revalidatePath } from "next/cache";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { requireCaregiver, requireCaregiverElderAccess } from "@/lib/auth/session";
 import { FALLBACK_REMINDERS } from "@/lib/demo-data/fallback-messages";
+import type { MedicationScheduleInput } from "@/lib/medications/types";
+import {
+  formatMedicationScheduleSummary,
+  getNextOccurrence,
+} from "@/lib/medications/schedule";
 
 function revalidateCaregiver(elderId: string) {
+  revalidatePath("/adulto");
   revalidatePath("/cuidador/dashboard");
   revalidatePath(`/cuidador/${elderId}/dashboard`);
   revalidatePath(`/cuidador/${elderId}/configuracion`);
@@ -14,34 +20,60 @@ function revalidateCaregiver(elderId: string) {
 
 // --- Medications CRUD ---
 
-export async function createMedication(elderId: string, data: {
-  name: string;
-  dose?: string;
-  time: string;
-  notes?: string;
-}) {
+export async function createMedication(elderId: string, data: MedicationScheduleInput) {
   await requireCaregiverElderAccess(elderId);
   const supabase = await createClient();
+
+  const schedule = {
+    times: [...data.schedule.times].sort(),
+    daysOfWeek: [...new Set(data.schedule.daysOfWeek)].sort(),
+    ...(data.schedule.timingMode === "interval"
+      ? {
+          timingMode: "interval" as const,
+          intervalHours: data.schedule.intervalHours,
+          firstDoseTime: data.schedule.firstDoseTime,
+        }
+      : { timingMode: "specific" as const }),
+  };
+  const primaryTime = schedule.times[0];
+  const frequency =
+    schedule.timingMode === "interval" && schedule.intervalHours
+      ? `cada ${schedule.intervalHours}h (${schedule.times.length}x/día)`
+      : `${schedule.times.length}x/día`;
 
   const { error } = await supabase.from("medications").insert({
     elder_id: elderId,
     name: data.name,
     dose: data.dose,
-    time: data.time,
-    scheduled_time: data.time,
+    time: primaryTime,
+    scheduled_time: `${primaryTime}:00`,
+    frequency,
     notes: data.notes,
+    start_date: data.startDate,
+    end_date: data.endDate ?? null,
+    schedule,
+    calendar_export_enabled: true,
     active: true,
   });
 
   if (error) throw new Error(error.message);
+
+  const nextOccurrence = getNextOccurrence(schedule, data.startDate, data.endDate);
+  const scheduleSummary = formatMedicationScheduleSummary({
+    dose: data.dose ?? null,
+    time: primaryTime,
+    start_date: data.startDate,
+    end_date: data.endDate ?? null,
+    schedule,
+  });
 
   await supabase.from("reminders").insert({
     elder_id: elderId,
     type: "medication",
     title: data.name,
     message_text: FALLBACK_REMINDERS.medication.adultMessage,
-    caregiver_message_text: `Medicamento ${data.name} programado a las ${data.time}.`,
-    due_at: new Date().toISOString(),
+    caregiver_message_text: `Medicamento ${data.name}: ${scheduleSummary}.`,
+    due_at: (nextOccurrence ?? new Date()).toISOString(),
     status: "pending",
   });
 

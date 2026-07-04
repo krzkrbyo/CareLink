@@ -2,11 +2,12 @@ import { createClient } from "@/lib/supabase/server";
 import { requireCaregiver, getCaregiverElders } from "@/lib/auth/session";
 import { formatRelative } from "@/lib/utils";
 import { computeActivityAnalytics, type ActivityAnalytics } from "@/lib/data/analytics";
-import type { Alert, Elder, Interaction } from "@/types/database";
+import type { Alert, Interaction } from "@/types/database";
+import type { ElderWithAvatar } from "@/lib/data/elder-display";
 import { isSameDay } from "date-fns";
 
 export interface ElderSummary {
-  elder: Elder & { relationship?: string | null };
+  elder: ElderWithAvatar;
   activeAlerts: number;
   alerts: Alert[];
   mood: string;

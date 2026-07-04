@@ -2,7 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { requireCaregiverElderAccess } from "@/lib/auth/session";
 import { formatRelative, formatTime } from "@/lib/utils";
 import { computeActivityAnalytics } from "@/lib/data/analytics";
-import type { Alert, Interaction, Elder } from "@/types/database";
+import type { Alert, Interaction } from "@/types/database";
+import { attachAvatarToElder, fetchAvatarsForAuthUsers } from "@/lib/data/elder-display";
 
 export async function getDashboardData(elderId: string) {
   await requireCaregiverElderAccess(elderId);
@@ -79,8 +80,13 @@ export async function getDashboardData(elderId: string) {
   const allInteractions = (interactions ?? []) as Interaction[];
   const analytics = computeActivityAnalytics(allInteractions);
 
+  const avatars = await fetchAvatarsForAuthUsers([elder?.auth_user_id]);
+  const elderWithAvatar = elder
+    ? attachAvatarToElder(elder, avatars)
+    : null;
+
   return {
-    elder: elder as Elder,
+    elder: elderWithAvatar,
     medReminder,
     checkinToday,
     nextAppointment,

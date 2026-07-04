@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import {
   AlertCircle,
   CheckCircle2,
+  ClipboardList,
   HeartHandshake,
   MessageCircleHeart,
   Pill,
@@ -12,6 +13,7 @@ import {
   Volume2,
 } from "lucide-react";
 import { ActionCard } from "@/components/elder/action-card";
+import { ElderCarePlanSection } from "@/components/elder/ElderCarePlanSection";
 import { ElderSectionNav } from "@/components/elder/elder-section-nav";
 import { MoodSelector } from "@/components/elder/MoodSelector";
 import { ReminderPlayer } from "@/components/elder/ReminderPlayer";
@@ -25,9 +27,11 @@ import {
   requestHelp,
   notifyFamily,
 } from "@/app/actions/elder";
+import type { ElderCarePlan } from "@/lib/data/elder-care-plan";
 
 const SECTIONS = [
   { id: "emergencia", label: "Ayuda", icon: AlertCircle },
+  { id: "plan", label: "Mi plan", icon: ClipboardList },
   { id: "rutina", label: "Rutina", icon: Pill },
   { id: "bienestar", label: "Bienestar", icon: SmilePlus },
   { id: "familia", label: "Familia", icon: MessageCircleHeart },
@@ -35,9 +39,10 @@ const SECTIONS = [
 
 interface AdultoPortalProps {
   elderName: string;
+  carePlan: ElderCarePlan;
 }
 
-export function AdultoPortal({ elderName }: AdultoPortalProps) {
+export function AdultoPortal({ elderName, carePlan }: AdultoPortalProps) {
   const [pending, startTransition] = useTransition();
   const [feedback, setFeedback] = useState("");
   const [showMood, setShowMood] = useState(false);
@@ -74,7 +79,7 @@ export function AdultoPortal({ elderName }: AdultoPortalProps) {
     <div className="mx-auto max-w-3xl px-4 pb-28 pt-4 lg:px-8 lg:pb-10 lg:pt-8">
       <PageHeader
         title={`Hola, ${elderName}`}
-        description="Use los botones de cada sección para registrar su rutina, su bienestar o pedir ayuda a su familia."
+        description="Consulte su plan de medicamentos, citas y alimentación. Use los botones para registrar su rutina o pedir ayuda."
       />
 
       {feedback && (
@@ -109,6 +114,10 @@ export function AdultoPortal({ elderName }: AdultoPortalProps) {
             loading={pending}
             onClick={() => act(requestHelp, "Ayuda enviada a su familia")}
           />
+        </section>
+
+        <section id="plan" className="scroll-mt-36">
+          <ElderCarePlanSection plan={carePlan} />
         </section>
 
         <section id="rutina" className="scroll-mt-36">

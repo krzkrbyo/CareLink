@@ -37,7 +37,12 @@ export async function updateSession(request: NextRequest) {
     path.startsWith("/api/n8n/") ||
     path.startsWith("/api/demo/");
 
-  if (!user && !isAuthPage && !isPublic && (path.startsWith("/adulto") || path.startsWith("/cuidador"))) {
+  if (
+    !user &&
+    !isAuthPage &&
+    !isPublic &&
+    (path.startsWith("/adulto") || path.startsWith("/cuidador") || path.startsWith("/configuracion"))
+  ) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     url.searchParams.set("redirect", path);

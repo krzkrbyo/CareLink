@@ -39,6 +39,11 @@ export async function DashboardView({ elderId }: DashboardViewProps) {
           { label: "Mis personas", href: "/cuidador" },
           { label: data.elder?.full_name ?? "Resumen" },
         ]}
+        avatar={
+          data.elder
+            ? { name: data.elder.full_name, url: data.elder.avatar_url }
+            : undefined
+        }
       />
 
       <section className="mb-8">

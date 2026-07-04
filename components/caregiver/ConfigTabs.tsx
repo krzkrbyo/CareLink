@@ -2,19 +2,20 @@
 
 import { useState, useTransition } from "react";
 import {
-  createMedication,
   deleteMedication,
   createAppointment,
   deleteAppointment,
   createFoodRule,
   deleteFoodRule,
 } from "@/app/actions/caregiver";
+import { MedicationScheduleForm } from "@/components/caregiver/MedicationScheduleForm";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CalendarClock, Pill, Salad, Trash2 } from "lucide-react";
+import { CalendarClock, CalendarPlus, Pill, Salad, Trash2 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { IconBox } from "@/components/ui/icon-box";
+import { formatMedicationScheduleSummary } from "@/lib/medications/schedule";
 import type { Medication, Appointment, FoodRule } from "@/types/database";
 
 interface ConfigTabsProps {
@@ -94,47 +95,14 @@ export function ConfigTabs({
 
       {tab === "medicamentos" && (
         <div className="grid gap-6 lg:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Agregar medicamento</CardTitle>
-              <p className="text-sm text-care-muted">
-                Registre nombre, dosis y hora para los recordatorios.
-              </p>
-            </CardHeader>
-            <CardContent>
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  const fd = new FormData(e.currentTarget);
-                  startTransition(async () => {
-                    await createMedication(elderId, {
-                      name: fd.get("name") as string,
-                      dose: fd.get("dose") as string,
-                      time: fd.get("time") as string,
-                      notes: fd.get("notes") as string,
-                    });
-                    setMessage("Medicamento agregado");
-                    e.currentTarget.reset();
-                  });
-                }}
-                className="space-y-3"
-              >
-                <input name="name" required placeholder="Nombre del medicamento" className="care-input" />
-                <input name="dose" placeholder="Dosis (ej: 1 tableta)" className="care-input" />
-                <input name="time" type="time" required className="care-input" />
-                <input name="notes" placeholder="Notas adicionales" className="care-input" />
-                <Button type="submit" disabled={pending} className="w-full">
-                  Guardar medicamento
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
+          <MedicationScheduleForm elderId={elderId} onSuccess={setMessage} />
           <ItemList
             icon={Pill}
             items={medications.map((m) => ({
               id: m.id,
               title: m.name,
-              subtitle: `${m.dose ?? ""} · ${m.time ?? ""}`,
+              subtitle: formatMedicationScheduleSummary(m),
+              calendarHref: `/api/calendar/medication/${m.id}`,
             }))}
             onDelete={(id) =>
               startTransition(async () => {
@@ -275,7 +243,7 @@ function ItemList({
   emptyText,
 }: {
   icon: LucideIcon;
-  items: { id: string; title: string; subtitle: string }[];
+  items: { id: string; title: string; subtitle: string; calendarHref?: string }[];
   onDelete: (id: string) => void;
   pending: boolean;
   emptyText: string;
@@ -303,14 +271,26 @@ function ItemList({
                 <p className="truncate text-sm text-care-muted">{item.subtitle}</p>
               </div>
             </div>
-            <button
-              onClick={() => onDelete(item.id)}
-              disabled={pending}
-              className="rounded-lg p-2 text-red-600 hover:bg-red-50"
-              aria-label={`Eliminar ${item.title}`}
-            >
-              <Trash2 className="h-5 w-5" />
-            </button>
+            <div className="flex shrink-0 items-center gap-1">
+              {item.calendarHref && (
+                <a
+                  href={item.calendarHref}
+                  className="rounded-lg p-2 text-care-accent-dark hover:bg-care-primary"
+                  aria-label={`Exportar ${item.title} al calendario`}
+                  title="Exportar al calendario"
+                >
+                  <CalendarPlus className="h-5 w-5" />
+                </a>
+              )}
+              <button
+                onClick={() => onDelete(item.id)}
+                disabled={pending}
+                className="rounded-lg p-2 text-red-600 hover:bg-red-50"
+                aria-label={`Eliminar ${item.title}`}
+              >
+                <Trash2 className="h-5 w-5" />
+              </button>
+            </div>
           </CardContent>
         </Card>
       ))}

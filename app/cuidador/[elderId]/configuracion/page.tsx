@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requireCaregiverElderAccess } from "@/lib/auth/session";
 import { ConfigTabs } from "@/components/caregiver/ConfigTabs";
 import { PageHeader } from "@/components/layout/page-header";
+import { getElderWithAvatar } from "@/lib/data/elder-display";
 
 export default async function ConfiguracionPage({
   params,
@@ -12,13 +13,13 @@ export default async function ConfiguracionPage({
   await requireCaregiverElderAccess(elderId);
   const supabase = await createClient();
 
+  const elder = await getElderWithAvatar(elderId);
+
   const [
-    { data: elder },
     { data: medications },
     { data: appointments },
     { data: foodRules },
   ] = await Promise.all([
-    supabase.from("elders").select("*").eq("id", elderId).single(),
     supabase.from("medications").select("*").eq("elder_id", elderId).order("created_at"),
     supabase.from("appointments").select("*").eq("elder_id", elderId).order("starts_at"),
     supabase.from("food_rules").select("*").eq("elder_id", elderId).order("created_at"),
@@ -34,6 +35,9 @@ export default async function ConfiguracionPage({
           { label: elder?.full_name ?? "Plan", href: `/cuidador/${elderId}/dashboard` },
           { label: "Plan de cuidado" },
         ]}
+        avatar={
+          elder ? { name: elder.full_name, url: elder.avatar_url } : undefined
+        }
       />
 
       <ConfigTabs

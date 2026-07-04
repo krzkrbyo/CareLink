@@ -14,6 +14,11 @@ export interface Database {
           id: string;
           full_name: string;
           role: "caregiver" | "elder";
+          avatar_url: string | null;
+          phone: string | null;
+          bio: string | null;
+          notification_settings: Json | null;
+          updated_at: string | null;
           created_at: string;
         };
         Insert: Partial<Database["public"]["Tables"]["profiles"]["Row"]> & {
@@ -49,6 +54,10 @@ export interface Database {
           scheduled_time: string | null;
           frequency: string | null;
           notes: string | null;
+          start_date: string;
+          end_date: string | null;
+          schedule: Json;
+          calendar_export_enabled: boolean;
           active: boolean | null;
           created_at: string;
         };

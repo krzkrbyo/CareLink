@@ -15,6 +15,7 @@ import { BarChart } from "@/components/charts/BarChart";
 import { HorizontalBarChart } from "@/components/charts/HorizontalBarChart";
 import { IconBox } from "@/components/ui/icon-box";
 import { Button } from "@/components/ui/button";
+import { UserAvatar } from "@/components/ui/user-avatar";
 
 export async function OverviewDashboardView() {
   const overview = await getCaregiverOverview();
@@ -114,9 +115,11 @@ export async function OverviewDashboardView() {
                 >
                   <div className="mb-3 flex items-start justify-between gap-2">
                     <div className="flex items-center gap-3">
-                      <span className="flex h-11 w-11 items-center justify-center rounded-full bg-care-accent/30 text-lg font-bold text-care-accent-darker">
-                        {s.elder.full_name.charAt(0)}
-                      </span>
+                      <UserAvatar
+                        name={s.elder.full_name}
+                        avatarUrl={s.elder.avatar_url ?? null}
+                        size="md"
+                      />
                       <div>
                         <h3 className="font-bold text-care-foreground group-hover:text-care-accent-darker">
                           {s.elder.full_name}
