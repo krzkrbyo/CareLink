@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import {
   formatDaysSummary,
   formatTimeLabel,
+  getNextOccurrence,
   isDateInTreatmentRange,
   parseMedicationSchedule,
 } from "@/lib/medications/schedule";
@@ -50,6 +51,25 @@ export interface ElderAgendaItem {
   time: string;
   sortKey: number;
   isPast: boolean;
+  dateLabel?: string;
+}
+
+export interface ElderMealView {
+  id: string;
+  label: string;
+  timeLabel: string;
+  dueAt: string;
+  status: "pending" | "completed" | "missed";
+  message: string | null;
+}
+
+export interface ElderRoutineView {
+  id: string;
+  title: string;
+  timeLabel: string;
+  dueAt: string;
+  status: "pending" | "completed" | "missed";
+  message: string | null;
 }
 
 export interface ElderCarePlan {
@@ -57,6 +77,9 @@ export interface ElderCarePlan {
   appointments: ElderAppointmentView[];
   foodRules: ElderFoodRuleView[];
   todayAgenda: ElderAgendaItem[];
+  featuredMedicationDoses: ElderAgendaItem[];
+  meals: ElderMealView[];
+  routineActivities: ElderRoutineView[];
 }
 
 const FOOD_TYPE_LABELS: Record<FoodRule["type"], string> = {
@@ -181,6 +204,100 @@ function buildTodayAgenda(
   return items.sort((a, b) => a.sortKey - b.sortKey);
 }
 
+function formatDoseDateLabel(date: Date, now: Date): string {
+  const today = new Date();
+  const tomorrow = new Date();
+  tomorrow.setDate(today.getDate() + 1);
+
+  if (date.toDateString() === today.toDateString()) return "Hoy";
+  if (date.toDateString() === tomorrow.toDateString()) return "Mañana";
+
+  return date.toLocaleDateString("es-MX", {
+    weekday: "long",
+    day: "numeric",
+    month: "short",
+  });
+}
+
+function buildFeaturedMedicationDoses(medications: Medication[], now: Date): ElderAgendaItem[] {
+  const occurrences: { med: Medication; at: Date }[] = [];
+
+  for (const med of medications) {
+    if (med.active === false) continue;
+    const schedule = parseMedicationSchedule(med.schedule);
+    const next = getNextOccurrence(schedule, med.start_date, med.end_date, now);
+    if (next) occurrences.push({ med, at: next });
+  }
+
+  if (occurrences.length === 0) return [];
+
+  const minTime = Math.min(...occurrences.map((o) => o.at.getTime()));
+  const atSameSlot = occurrences.filter((o) => o.at.getTime() === minTime);
+
+  return atSameSlot.map(({ med, at }) => {
+    const hours = String(at.getHours()).padStart(2, "0");
+    const minutes = String(at.getMinutes()).padStart(2, "0");
+    return {
+      id: `${med.id}-${at.getTime()}`,
+      kind: "medication" as const,
+      title: med.name,
+      subtitle: med.dose ? `Dosis: ${med.dose}` : "Medicamento",
+      time: formatTimeLabel(`${hours}:${minutes}`),
+      sortKey: at.getTime(),
+      isPast: at.getTime() < now.getTime(),
+      dateLabel: formatDoseDateLabel(at, now),
+    };
+  });
+}
+
+const MEAL_ORDER = ["Desayuno", "Almuerzo", "Merienda", "Cena"] as const;
+
+function buildMealViews(
+  reminders: { id: string; title: string; due_at: string | null; status: string; message_text: string | null }[],
+  now: Date
+): ElderMealView[] {
+  const mealReminders = reminders.filter((r) => MEAL_ORDER.includes(r.title as (typeof MEAL_ORDER)[number]));
+
+  return MEAL_ORDER.map((label) => {
+    const reminder = mealReminders.find((r) => r.title === label);
+    if (!reminder) {
+      return null;
+    }
+    const due = reminder.due_at ? new Date(reminder.due_at) : now;
+    return {
+      id: reminder.id,
+      label,
+      timeLabel: due.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" }),
+      dueAt: reminder.due_at ?? now.toISOString(),
+      status: reminder.status as ElderMealView["status"],
+      message: reminder.message_text,
+    };
+  }).filter((m): m is ElderMealView => m !== null);
+}
+
+function buildRoutineViews(
+  reminders: { id: string; title: string; due_at: string | null; status: string; message_text: string | null; type: string }[]
+): ElderRoutineView[] {
+  return reminders
+    .filter((r) => r.type === "activity" || r.type === "hydration")
+    .sort((a, b) => {
+      const ta = a.due_at ? new Date(a.due_at).getTime() : 0;
+      const tb = b.due_at ? new Date(b.due_at).getTime() : 0;
+      return ta - tb;
+    })
+    .map((r) => {
+      const due = r.due_at ? new Date(r.due_at) : new Date();
+      return {
+        id: r.id,
+        title: r.title,
+        timeLabel: due.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" }),
+        dueAt: r.due_at ?? new Date().toISOString(),
+        status: r.status as ElderRoutineView["status"],
+        message: r.message_text,
+      };
+    });
+}
+
 export async function getElderCarePlan(): Promise<ElderCarePlan> {
   const { elder } = await requireElder();
   const supabase = await createClient();
@@ -188,7 +305,7 @@ export async function getElderCarePlan(): Promise<ElderCarePlan> {
   const startOfToday = new Date(now);
   startOfToday.setHours(0, 0, 0, 0);
 
-  const [{ data: medications }, { data: appointments }, { data: foodRules }] =
+  const [{ data: medications }, { data: appointments }, { data: foodRules }, { data: reminders }] =
     await Promise.all([
       supabase
         .from("medications")
@@ -206,6 +323,12 @@ export async function getElderCarePlan(): Promise<ElderCarePlan> {
         .select("*")
         .eq("elder_id", elder.id)
         .order("created_at"),
+      supabase
+        .from("reminders")
+        .select("id, title, type, due_at, status, message_text")
+        .eq("elder_id", elder.id)
+        .in("type", ["meal", "activity", "hydration"])
+        .order("due_at"),
     ]);
 
   const activeMeds = (medications ?? []).filter((m) => m.active !== false);
@@ -242,5 +365,8 @@ export async function getElderCarePlan(): Promise<ElderCarePlan> {
     appointments: appointmentViews,
     foodRules: foodRuleViews,
     todayAgenda: buildTodayAgenda(medicationViews, appointmentViews, now),
+    featuredMedicationDoses: buildFeaturedMedicationDoses(activeMeds as Medication[], now),
+    meals: buildMealViews(reminders ?? [], now),
+    routineActivities: buildRoutineViews(reminders ?? []),
   };
 }

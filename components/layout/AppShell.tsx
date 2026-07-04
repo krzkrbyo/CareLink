@@ -15,8 +15,12 @@ import {
   Settings,
   UserCog,
 } from "lucide-react";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { signOut } from "@/app/actions/auth";
+import {
+  ElderAppShellNav,
+  ElderMobileBottomNav,
+} from "@/components/elder/elder-sidebar";
 import { cn } from "@/lib/utils";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import type { CaregiverElder } from "@/lib/auth/session";
@@ -100,16 +104,6 @@ export function AppShell({
       ]
     : [];
 
-  const elderLinks: NavLink[] = [
-    {
-      href: "/adulto",
-      label: "Mi día",
-      description: "Rutina, bienestar y contacto",
-      icon: Heart,
-      match: (p) => p === "/adulto",
-    },
-  ];
-
   const caregiverAccountLink: NavLink = {
     href: "/configuracion",
     label: "Mi cuenta",
@@ -118,7 +112,7 @@ export function AppShell({
     match: (p) => p.startsWith("/configuracion"),
   };
 
-  const mainLinks = role === "caregiver" ? caregiverMainLinks : elderLinks;
+  const mainLinks = caregiverMainLinks;
   const contextualLinks = role === "caregiver" ? caregiverElderLinks : [];
 
   function NavLinkItem({ link }: { link: NavLink }) {
@@ -154,7 +148,7 @@ export function AppShell({
   }
 
   const NavContent = () => (
-    <>
+    <div className="flex min-h-full flex-1 flex-col">
       <div className="mb-6 flex items-center gap-3 px-2">
         {role === "caregiver" ? (
           <Link href="/configuracion" onClick={() => setMobileOpen(false)}>
@@ -225,14 +219,30 @@ export function AppShell({
         </div>
       )}
 
-      <div className="mb-2 px-2 text-xs font-semibold uppercase tracking-wide text-care-muted-light">
-        Menú
-      </div>
-      <nav className="flex flex-col gap-1">
-        {mainLinks.map((link) => (
-          <NavLinkItem key={link.href} link={link} />
-        ))}
-      </nav>
+      {role === "elder" ? (
+        <Suspense
+          fallback={
+            <div className="space-y-4 px-2">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-10 animate-pulse rounded-xl bg-care-secondary/30" />
+              ))}
+            </div>
+          }
+        >
+          <ElderAppShellNav onNavigate={() => setMobileOpen(false)} />
+        </Suspense>
+      ) : (
+        <>
+          <div className="mb-2 px-2 text-xs font-semibold uppercase tracking-wide text-care-muted-light">
+            Menú
+          </div>
+          <nav className="flex flex-col gap-1">
+            {mainLinks.map((link) => (
+              <NavLinkItem key={link.href} link={link} />
+            ))}
+          </nav>
+        </>
+      )}
 
       {role === "caregiver" && (
         <>
@@ -277,10 +287,10 @@ export function AppShell({
           <span className="font-medium">Cerrar sesión</span>
         </button>
       </form>
-    </>
+    </div>
   );
 
-  const showMobileBottomNav = role === "caregiver";
+  const showMobileBottomNav = role === "caregiver" || role === "elder";
 
   const mobileBottomLinks: NavLink[] = showMobileBottomNav
     ? [
@@ -347,14 +357,16 @@ export function AppShell({
       )}
 
       <div className="mx-auto flex max-w-7xl">
-        <aside className="hidden w-72 shrink-0 flex-col border-r border-care-secondary/50 bg-white/80 p-4 backdrop-blur-sm lg:flex lg:min-h-[calc(100dvh)]">
-          <NavContent />
+        <aside className="hidden lg:sticky lg:top-0 lg:flex lg:h-dvh lg:w-72 lg:shrink-0 lg:flex-col lg:border-r lg:border-care-secondary/50 lg:bg-white/80 lg:backdrop-blur-sm">
+          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-4">
+            <NavContent />
+          </div>
         </aside>
 
         <div className="flex min-w-0 flex-1 flex-col">
           <main className={cn("flex-1", showMobileBottomNav && "pb-20 lg:pb-0")}>{children}</main>
 
-          {showMobileBottomNav && (
+          {role === "caregiver" && showMobileBottomNav && (
           <nav
             aria-label="Acceso rápido"
             className="fixed inset-x-0 bottom-0 z-40 border-t border-care-secondary/50 bg-white/95 px-1 py-2 backdrop-blur-sm lg:hidden"
@@ -393,6 +405,12 @@ export function AppShell({
               })}
             </div>
           </nav>
+          )}
+
+          {role === "elder" && (
+            <Suspense fallback={null}>
+              <ElderMobileBottomNav />
+            </Suspense>
           )}
         </div>
       </div>

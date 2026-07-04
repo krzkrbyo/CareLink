@@ -85,23 +85,59 @@ export async function resetDemoData() {
     relationship: "hija",
   });
 
-  await admin.from("medications").insert({
-    elder_id: elderId,
-    name: "Pastilla para la presión",
-    dose: "1 tableta",
-    time: "08:00",
-    scheduled_time: "08:00:00",
-    frequency: "1x/día",
-    notes: "Tomar con agua",
-    start_date: new Date().toISOString().slice(0, 10),
-    end_date: null,
-    schedule: {
-      times: ["08:00"],
-      daysOfWeek: [1, 2, 3, 4, 5, 6, 7],
+  await admin.from("medications").insert([
+    {
+      elder_id: elderId,
+      name: "Pastilla para la presión",
+      dose: "1 tableta",
+      time: "08:00",
+      scheduled_time: "08:00:00",
+      frequency: "1x/día",
+      notes: "Tomar con agua, en ayunas",
+      start_date: new Date().toISOString().slice(0, 10),
+      end_date: null,
+      schedule: {
+        times: ["08:00"],
+        daysOfWeek: [1, 2, 3, 4, 5, 6, 7],
+      },
+      calendar_export_enabled: true,
+      active: true,
     },
-    calendar_export_enabled: true,
-    active: true,
-  });
+    {
+      elder_id: elderId,
+      name: "Protector gástrico",
+      dose: "1 cápsula",
+      time: "08:00",
+      scheduled_time: "08:00:00",
+      frequency: "1x/día",
+      notes: "Tomar junto con la pastilla para la presión",
+      start_date: new Date().toISOString().slice(0, 10),
+      end_date: null,
+      schedule: {
+        times: ["08:00"],
+        daysOfWeek: [1, 2, 3, 4, 5, 6, 7],
+      },
+      calendar_export_enabled: true,
+      active: true,
+    },
+    {
+      elder_id: elderId,
+      name: "Pastilla para la presión (noche)",
+      dose: "1 tableta",
+      time: "20:00",
+      scheduled_time: "20:00:00",
+      frequency: "1x/día",
+      notes: "Tomar después de la cena",
+      start_date: new Date().toISOString().slice(0, 10),
+      end_date: null,
+      schedule: {
+        times: ["20:00"],
+        daysOfWeek: [1, 2, 3, 4, 5, 6, 7],
+      },
+      calendar_export_enabled: true,
+      active: true,
+    },
+  ]);
 
   const { data: appointment } = await admin
     .from("appointments")
@@ -126,10 +162,78 @@ export async function resetDemoData() {
   });
 
   await admin.from("food_rules").insert([
-    { elder_id: elderId, type: "prohibited", label: "tortillas" },
-    { elder_id: elderId, type: "reduce", label: "sal" },
-    { elder_id: elderId, type: "recommendation", label: "tomar agua" },
-    { elder_id: elderId, type: "recommendation", label: "comer fruta" },
+    {
+      elder_id: elderId,
+      type: "prohibited",
+      label: "tortillas",
+      notes: "Alto en sodio y carbohidratos refinados",
+    },
+    {
+      elder_id: elderId,
+      type: "prohibited",
+      label: "embutidos",
+      notes: "Salchichas, jamón y carnes frías — muy altos en sodio",
+    },
+    {
+      elder_id: elderId,
+      type: "prohibited",
+      label: "comida frita",
+      notes: "Aumenta colesterol y presión arterial",
+    },
+    {
+      elder_id: elderId,
+      type: "prohibited",
+      label: "alcohol",
+      notes: "Puede elevar la presión y afectar los medicamentos",
+    },
+    {
+      elder_id: elderId,
+      type: "reduce",
+      label: "sal",
+      notes: "Usar hierbas y especias en lugar de sal de mesa",
+    },
+    {
+      elder_id: elderId,
+      type: "reduce",
+      label: "café",
+      notes: "Máximo una taza al día; preferir descafeinado",
+    },
+    {
+      elder_id: elderId,
+      type: "reduce",
+      label: "quesos salados",
+      notes: "Optar por quesos bajos en sodio",
+    },
+    {
+      elder_id: elderId,
+      type: "recommendation",
+      label: "tomar agua",
+      notes: "Al menos 6 a 8 vasos al día, distribuidos en el día",
+    },
+    {
+      elder_id: elderId,
+      type: "recommendation",
+      label: "comer fruta",
+      notes: "Plátano, manzana, sandía — ricas en potasio",
+    },
+    {
+      elder_id: elderId,
+      type: "recommendation",
+      label: "verduras al vapor",
+      notes: "Brócoli, espinaca y calabaza sin sal añadida",
+    },
+    {
+      elder_id: elderId,
+      type: "recommendation",
+      label: "pescado",
+      notes: "Sardina o salmón 2 veces por semana",
+    },
+    {
+      elder_id: elderId,
+      type: "recommendation",
+      label: "avena",
+      notes: "Buena opción para el desayuno, ayuda al colesterol",
+    },
   ]);
 
   await admin.from("reminders").insert([
@@ -145,10 +249,76 @@ export async function resetDemoData() {
     {
       elder_id: elderId,
       type: "meal",
+      title: "Desayuno",
+      message_text:
+        "Buenos días, Don Manuel. Es hora del desayuno. Prefiera avena, fruta y evite sal.",
+      caregiver_message_text: "Hora del desayuno de Don Manuel.",
+      due_at: todayAt(7, 30).toISOString(),
+      status: "pending",
+    },
+    {
+      elder_id: elderId,
+      type: "meal",
       title: "Almuerzo",
       message_text: FALLBACK_REMINDERS.meal.adultMessage,
       caregiver_message_text: FALLBACK_REMINDERS.meal.caregiverMessage,
       due_at: todayAt(13, 0).toISOString(),
+      status: "pending",
+    },
+    {
+      elder_id: elderId,
+      type: "meal",
+      title: "Merienda",
+      message_text:
+        "Don Manuel, es hora de la merienda. Una fruta o yogurt bajo en grasa es ideal.",
+      caregiver_message_text: "Hora de la merienda de Don Manuel.",
+      due_at: todayAt(17, 0).toISOString(),
+      status: "pending",
+    },
+    {
+      elder_id: elderId,
+      type: "meal",
+      title: "Cena",
+      message_text:
+        "Don Manuel, es hora de la cena. Comida ligera: evite frituras y embutidos.",
+      caregiver_message_text: "Hora de la cena de Don Manuel.",
+      due_at: todayAt(19, 30).toISOString(),
+      status: "pending",
+    },
+    {
+      elder_id: elderId,
+      type: "activity",
+      title: "Caminata suave",
+      message_text: "15 minutos de caminata tranquila en casa o en el jardín.",
+      caregiver_message_text: "Don Manuel tiene caminata suave programada.",
+      due_at: todayAt(10, 0).toISOString(),
+      status: "pending",
+    },
+    {
+      elder_id: elderId,
+      type: "activity",
+      title: "Ejercicios de equilibrio",
+      message_text: "Estiramientos suaves y ejercicios de equilibrio durante 10 minutos.",
+      caregiver_message_text: "Don Manuel tiene ejercicios de equilibrio programados.",
+      due_at: todayAt(11, 30).toISOString(),
+      status: "pending",
+    },
+    {
+      elder_id: elderId,
+      type: "hydration",
+      title: "Beber agua",
+      message_text: "Recuerde tomar un vaso de agua. La hidratación ayuda a la presión.",
+      caregiver_message_text: "Recordatorio de hidratación para Don Manuel.",
+      due_at: todayAt(12, 0).toISOString(),
+      status: "pending",
+    },
+    {
+      elder_id: elderId,
+      type: "activity",
+      title: "Lectura o pasatiempo",
+      message_text: "Dedique un rato a leer o a una actividad que disfrute.",
+      caregiver_message_text: "Don Manuel tiene tiempo de lectura programado.",
+      due_at: todayAt(16, 0).toISOString(),
       status: "pending",
     },
     {

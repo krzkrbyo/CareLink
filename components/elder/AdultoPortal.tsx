@@ -1,22 +1,31 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
-  AlertCircle,
+  CalendarClock,
   CheckCircle2,
-  ClipboardList,
   HeartHandshake,
   MessageCircleHeart,
   Pill,
+  Salad,
   SmilePlus,
   UtensilsCrossed,
   Volume2,
 } from "lucide-react";
 import { ActionCard } from "@/components/elder/action-card";
-import { ElderCarePlanSection } from "@/components/elder/ElderCarePlanSection";
-import { ElderSectionNav } from "@/components/elder/elder-section-nav";
+import {
+  ElderMedicationsList,
+  ElderAppointmentsList,
+  ElderFoodRulesList,
+} from "@/components/elder/ElderCarePlanSection";
+import { HelpHeroCard } from "@/components/elder/HelpHeroCard";
+import { MealCards } from "@/components/elder/MealCards";
 import { MoodSelector } from "@/components/elder/MoodSelector";
+import { NextAppointmentCard } from "@/components/elder/NextAppointmentCard";
+import { NextMedicationCard } from "@/components/elder/NextMedicationCard";
 import { ReminderPlayer } from "@/components/elder/ReminderPlayer";
+import { RoutineActivitiesList } from "@/components/elder/RoutineActivitiesList";
 import { PageHeader } from "@/components/layout/page-header";
 import { SectionHeader } from "@/components/layout/section-header";
 import {
@@ -28,14 +37,13 @@ import {
   notifyFamily,
 } from "@/app/actions/elder";
 import type { ElderCarePlan } from "@/lib/data/elder-care-plan";
-
-const SECTIONS = [
-  { id: "emergencia", label: "Ayuda", icon: AlertCircle },
-  { id: "plan", label: "Mi plan", icon: ClipboardList },
-  { id: "rutina", label: "Rutina", icon: Pill },
-  { id: "bienestar", label: "Bienestar", icon: SmilePlus },
-  { id: "familia", label: "Familia", icon: MessageCircleHeart },
-] as const;
+import {
+  getFeaturedAppointments,
+  getFeaturedMedicationDoses,
+  hasMoreAppointments,
+  hasMoreMedications,
+} from "@/lib/data/elder-care-plan-helpers";
+import { elderSectionHref, parseElderSection } from "@/lib/elder-nav";
 
 interface AdultoPortalProps {
   elderName: string;
@@ -43,91 +51,133 @@ interface AdultoPortalProps {
 }
 
 export function AdultoPortal({ elderName, carePlan }: AdultoPortalProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const activeSection = parseElderSection(searchParams.get("seccion"));
+
   const [pending, startTransition] = useTransition();
   const [feedback, setFeedback] = useState("");
   const [showMood, setShowMood] = useState(false);
-  const [activeSection, setActiveSection] = useState<string>("emergencia");
+  const [medConfirmed, setMedConfirmed] = useState(false);
+  const [confirmedMeals, setConfirmedMeals] = useState<Set<string>>(() => {
+    const done = carePlan.meals
+      .filter((m) => m.status === "completed")
+      .map((m) => m.label);
+    return new Set(done);
+  });
 
-  function act(fn: () => Promise<{ success: boolean }>, msg: string) {
+  const featuredAppointments = getFeaturedAppointments(carePlan.appointments);
+  const featuredDoses = getFeaturedMedicationDoses(carePlan);
+
+  function navigate(id: string) {
+    router.push(elderSectionHref(id));
+  }
+
+  function act(fn: () => Promise<{ success: boolean }>, msg: string, onSuccess?: () => void) {
     startTransition(async () => {
       await fn();
       setFeedback(msg);
+      onSuccess?.();
       setTimeout(() => setFeedback(""), 4000);
     });
   }
 
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries
-          .filter((e) => e.isIntersecting)
-          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
-        if (visible?.target.id) setActiveSection(visible.target.id);
-      },
-      { rootMargin: "-30% 0px -55% 0px", threshold: [0, 0.25, 0.5] }
+  function confirmMed() {
+    act(confirmMedication, "Medicamento registrado correctamente", () => setMedConfirmed(true));
+  }
+
+  function confirmMealLabel(label: string) {
+    act(
+      () => confirmMeal(label),
+      `${label} registrado correctamente`,
+      () => setConfirmedMeals((prev) => new Set(prev).add(label))
     );
+  }
 
-    SECTIONS.forEach(({ id }) => {
-      const el = document.getElementById(id);
-      if (el) observer.observe(el);
-    });
+  const medicationCard = (
+    <NextMedicationCard
+      doses={featuredDoses}
+      onConfirm={confirmMed}
+      loading={pending}
+      confirmed={medConfirmed}
+      showViewAll={hasMoreMedications(carePlan)}
+      onViewAll={() => navigate("medicamentos")}
+    />
+  );
 
-    return () => observer.disconnect();
-  }, []);
+  function renderContent() {
+    switch (activeSection) {
+      case "inicio":
+        return (
+          <div className="space-y-6">
+            <HelpHeroCard
+              onHelp={() => act(requestHelp, "Ayuda enviada a su familia")}
+              loading={pending}
+            />
+            <div className="grid gap-6 lg:grid-cols-2">
+              {medicationCard}
+              <NextAppointmentCard
+                appointments={featuredAppointments}
+                showViewAll={hasMoreAppointments(carePlan.appointments, featuredAppointments)}
+                onViewAll={() => navigate("citas")}
+              />
+            </div>
+          </div>
+        );
 
-  return (
-    <div className="mx-auto max-w-3xl px-4 pb-28 pt-4 lg:px-8 lg:pb-10 lg:pt-8">
-      <PageHeader
-        title={`Hola, ${elderName}`}
-        description="Consulte su plan de medicamentos, citas y alimentación. Use los botones para registrar su rutina o pedir ayuda."
-      />
+      case "medicamentos":
+        return (
+          <div className="space-y-6">
+            <SectionHeader
+              icon={Pill}
+              title="Mis medicamentos"
+              description="Su próxima toma y el detalle de todos sus medicamentos."
+            />
+            <NextMedicationCard
+              doses={featuredDoses}
+              onConfirm={confirmMed}
+              loading={pending}
+              confirmed={medConfirmed}
+            />
+            <ElderMedicationsList medications={carePlan.medications} />
+          </div>
+        );
 
-      {feedback && (
-        <div className="mb-6 flex items-center gap-3 rounded-2xl border-2 border-green-300 bg-green-50 p-4 text-green-900">
-          <CheckCircle2 className="h-6 w-6 shrink-0" />
-          <p className="text-lg font-semibold">{feedback}</p>
-        </div>
-      )}
+      case "citas":
+        return (
+          <div className="space-y-6">
+            <SectionHeader
+              icon={CalendarClock}
+              title="Citas y exámenes"
+              description="Su próxima visita y el listado completo."
+            />
+            <NextAppointmentCard appointments={featuredAppointments} />
+            <ElderAppointmentsList appointments={carePlan.appointments} />
+          </div>
+        );
 
-      <ElderSectionNav
-        sections={[...SECTIONS]}
-        activeId={activeSection}
-        onSelect={setActiveSection}
-      />
+      case "alimentacion":
+        return (
+          <div className="space-y-6">
+            <SectionHeader
+              icon={Salad}
+              title="Alimentación"
+              description="Alimentos que debe evitar, reducir o preferir según su plan para la presión alta."
+            />
+            <ElderFoodRulesList foodRules={carePlan.foodRules} />
+          </div>
+        );
 
-      <div className="space-y-10">
-        <section id="emergencia" className="scroll-mt-36">
-          <SectionHeader
-            icon={AlertCircle}
-            tone="danger"
-            title="Necesito ayuda ahora"
-            description="Si se siente mal o necesita asistencia urgente, avise a su familia de inmediato."
-          />
-          <ActionCard
-            icon={AlertCircle}
-            iconTone="danger"
-            title="Pedir ayuda urgente"
-            description="Enviaremos una alerta a las personas que lo cuidan para que se comuniquen con usted."
-            actionLabel="Avisar que necesito ayuda"
-            variant="destructive"
-            prominent
-            loading={pending}
-            onClick={() => act(requestHelp, "Ayuda enviada a su familia")}
-          />
-        </section>
+      case "rutina":
+        return (
+          <div className="space-y-8">
+            <SectionHeader
+              icon={Volume2}
+              title="Mi rutina de hoy"
+              description="Medicamentos, comidas y actividades programadas para hoy."
+            />
 
-        <section id="plan" className="scroll-mt-36">
-          <ElderCarePlanSection plan={carePlan} />
-        </section>
-
-        <section id="rutina" className="scroll-mt-36">
-          <SectionHeader
-            icon={Pill}
-            title="Mi rutina de hoy"
-            description="Escuche su recordatorio y confirme cuando haya tomado su medicamento o comido."
-          />
-          <div className="space-y-4">
-            <article className="care-surface p-5">
+            <article className="care-surface p-6">
               <div className="mb-4 flex items-start gap-4">
                 <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-care-secondary/60 text-care-foreground">
                   <Volume2 className="h-7 w-7" />
@@ -145,36 +195,42 @@ export function AdultoPortal({ elderName, carePlan }: AdultoPortalProps) {
               />
             </article>
 
-            <ActionCard
-              icon={Pill}
-              iconTone="accent"
-              title="Medicamento"
-              description="Confirme cuando haya tomado su medicamento de hoy."
-              actionLabel="Ya tomé mi medicamento"
+            <NextMedicationCard
+              doses={featuredDoses}
+              onConfirm={confirmMed}
               loading={pending}
-              onClick={() => act(confirmMedication, "Medicamento registrado correctamente")}
+              confirmed={medConfirmed}
+              compact
             />
 
-            <ActionCard
-              icon={UtensilsCrossed}
-              iconTone="secondary"
-              title="Comida"
-              description="Indique que ya realizó su comida o merienda."
-              actionLabel="Ya comí"
-              variant="secondary"
-              loading={pending}
-              onClick={() => act(confirmMeal, "Comida registrada")}
-            />
+            <div>
+              <SectionHeader
+                icon={UtensilsCrossed}
+                title="Mis comidas de hoy"
+                description="Confirme cada comida cuando la haya realizado."
+              />
+              <div className="mt-4">
+                <MealCards
+                  meals={carePlan.meals}
+                  onConfirm={confirmMealLabel}
+                  loading={pending}
+                  confirmedMeals={confirmedMeals}
+                />
+              </div>
+            </div>
+
+            <RoutineActivitiesList activities={carePlan.routineActivities} />
           </div>
-        </section>
+        );
 
-        <section id="bienestar" className="scroll-mt-36">
-          <SectionHeader
-            icon={SmilePlus}
-            title="Cómo me siento hoy"
-            description="Comparta su estado para que su familia sepa cómo va su día."
-          />
-          <div className="space-y-4">
+      case "bienestar":
+        return (
+          <div className="space-y-6">
+            <SectionHeader
+              icon={SmilePlus}
+              title="Cómo me siento hoy"
+              description="Comparta su estado para que su familia sepa cómo va su día."
+            />
             <ActionCard
               icon={CheckCircle2}
               iconTone="success"
@@ -185,7 +241,6 @@ export function AdultoPortal({ elderName, carePlan }: AdultoPortalProps) {
               loading={pending}
               onClick={() => act(dailyCheckin, "Check-in registrado")}
             />
-
             {!showMood ? (
               <ActionCard
                 icon={SmilePlus}
@@ -197,7 +252,7 @@ export function AdultoPortal({ elderName, carePlan }: AdultoPortalProps) {
                 onClick={() => setShowMood(true)}
               />
             ) : (
-              <div className="care-surface p-5">
+              <div className="care-surface p-6">
                 <SectionHeader
                   icon={SmilePlus}
                   title="¿Cómo se siente en este momento?"
@@ -218,26 +273,53 @@ export function AdultoPortal({ elderName, carePlan }: AdultoPortalProps) {
               </div>
             )}
           </div>
-        </section>
+        );
 
-        <section id="familia" className="scroll-mt-36">
-          <SectionHeader
-            icon={HeartHandshake}
-            title="Comunicarme con mi familia"
-            description="Envíe un aviso amable sin que sea una emergencia."
-          />
-          <ActionCard
-            icon={MessageCircleHeart}
-            iconTone="accent"
-            title="Aviso a la familia"
-            description="Su familia recibirá una notificación para saber que desea contactarlos."
-            actionLabel="Avisar a mi familia"
-            variant="outline"
-            loading={pending}
-            onClick={() => act(notifyFamily, "Aviso enviado a su familia")}
-          />
-        </section>
-      </div>
+      case "familia":
+        return (
+          <div className="space-y-6">
+            <SectionHeader
+              icon={HeartHandshake}
+              title="Comunicarme con mi familia"
+              description="Envíe un aviso amable sin que sea una emergencia."
+            />
+            <ActionCard
+              icon={MessageCircleHeart}
+              iconTone="accent"
+              title="Aviso a la familia"
+              description="Su familia recibirá una notificación para saber que desea contactarlos."
+              actionLabel="Avisar a mi familia"
+              variant="outline"
+              loading={pending}
+              onClick={() => act(notifyFamily, "Aviso enviado a su familia")}
+            />
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  }
+
+  return (
+    <div className="mx-auto max-w-4xl px-4 pb-8 pt-4 lg:px-8 lg:pt-8">
+      <PageHeader
+        title={`Hola, ${elderName}`}
+        description={
+          activeSection === "inicio"
+            ? "Aquí tiene lo más importante de su día. Use el menú para ver más detalles."
+            : undefined
+        }
+      />
+
+      {feedback && (
+        <div className="mb-6 flex items-center gap-3 rounded-2xl border-2 border-green-300 bg-green-50 p-4 text-green-900">
+          <CheckCircle2 className="h-6 w-6 shrink-0" />
+          <p className="text-lg font-semibold">{feedback}</p>
+        </div>
+      )}
+
+      {renderContent()}
     </div>
   );
 }

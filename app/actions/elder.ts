@@ -43,21 +43,28 @@ export async function confirmMedication() {
   return { success: true };
 }
 
-export async function confirmMeal() {
+export async function confirmMeal(mealLabel?: string) {
   const { elder, supabase } = await getElderContext();
 
   await supabase.from("interactions").insert({
     elder_id: elder.id,
     type: "meal_confirmed",
-    value: "Comió",
+    value: mealLabel ? `Comió: ${mealLabel}` : "Comió",
+    metadata: mealLabel ? { meal: mealLabel } : null,
   });
 
-  await supabase
+  let query = supabase
     .from("reminders")
     .update({ status: "completed" })
     .eq("elder_id", elder.id)
     .eq("type", "meal")
     .eq("status", "pending");
+
+  if (mealLabel) {
+    query = query.eq("title", mealLabel);
+  }
+
+  await query;
 
   await touchActivity(supabase, elder.id);
   revalidateElder();
