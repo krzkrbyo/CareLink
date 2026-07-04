@@ -5,8 +5,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { AddElderForm } from "@/components/caregiver/AddElderForm";
 import { PageHeader } from "@/components/layout/page-header";
 import { SectionHeader } from "@/components/layout/section-header";
-import { UserAvatar } from "@/components/ui/user-avatar";
 import { IconBox } from "@/components/ui/icon-box";
+import { UserAvatar } from "@/components/ui/user-avatar";
+import { elderCarePath } from "@/lib/elders/routes";
 
 export default async function CuidadorPage() {
   const { user, profile } = await requireCaregiver();
@@ -40,7 +41,7 @@ export default async function CuidadorPage() {
           ) : (
             <div className="space-y-3">
               {elders.map((elder) => (
-                <Link key={elder.id} href={`/cuidador/${elder.id}/dashboard`}>
+                <Link key={elder.id} href={elderCarePath(elder.slug, "dashboard")}>
                   <Card className="transition-all hover:border-care-accent/50 hover:shadow-md">
                     <CardContent className="flex items-center justify-between gap-4 p-4">
                       <div className="flex min-w-0 items-center gap-4">

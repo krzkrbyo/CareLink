@@ -5,6 +5,8 @@ import { updatePassword } from "@/app/actions/settings";
 import { updateManagedElderPassword } from "@/app/actions/elder-settings";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { FormField } from "@/components/ui/form-field";
 import { Shield } from "lucide-react";
 
 interface PasswordFormProps {
@@ -41,9 +43,6 @@ export function PasswordForm({ elderId, managedByCaregiver = false }: PasswordFo
     });
   }
 
-  const inputClass =
-    "w-full rounded-xl border-2 border-care-secondary/60 bg-white px-4 py-3 text-care-foreground outline-none focus:border-care-accent-dark";
-
   return (
     <Card>
       <CardHeader>
@@ -59,34 +58,26 @@ export function PasswordForm({ elderId, managedByCaregiver = false }: PasswordFo
           </p>
         )}
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="password" className="mb-1 block text-sm font-semibold">
-              Nueva contraseña
-            </label>
-            <input
+          <FormField id="password" label="Nueva contraseña" required>
+            <Input
               id="password"
               name="password"
               type="password"
               minLength={8}
               required
               autoComplete="new-password"
-              className={inputClass}
             />
-          </div>
-          <div>
-            <label htmlFor="confirm" className="mb-1 block text-sm font-semibold">
-              Confirmar contraseña
-            </label>
-            <input
+          </FormField>
+          <FormField id="confirm" label="Confirmar contraseña" required>
+            <Input
               id="confirm"
               name="confirm"
               type="password"
               minLength={8}
               required
               autoComplete="new-password"
-              className={inputClass}
             />
-          </div>
+          </FormField>
 
           {message && <p className="text-sm text-green-700">{message}</p>}
           {error && <p className="text-sm text-red-600">{error}</p>}

@@ -24,6 +24,7 @@ import {
 import { cn } from "@/lib/utils";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import type { CaregiverElder } from "@/lib/auth/session";
+import { elderCarePath, parseElderSlugFromPath } from "@/lib/elders/routes";
 
 interface NavLink {
   href: string;
@@ -39,7 +40,7 @@ interface AppShellProps {
   userName: string;
   avatarUrl?: string | null;
   elders?: CaregiverElder[];
-  currentElderId?: string;
+  currentElderSlug?: string;
 }
 
 function isActive(pathname: string, href: string, customMatch?: (p: string) => boolean) {
@@ -54,14 +55,13 @@ export function AppShell({
   userName,
   avatarUrl = null,
   elders = [],
-  currentElderId,
+  currentElderSlug,
 }: AppShellProps) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const pathElderMatch = pathname.match(/\/cuidador\/([0-9a-f-]{36})/i);
-  const activeElderId = currentElderId ?? pathElderMatch?.[1];
-  const activeElder = elders.find((e) => e.id === activeElderId);
+  const activeElderSlug = currentElderSlug ?? parseElderSlugFromPath(pathname);
+  const activeElder = elders.find((e) => e.slug === activeElderSlug);
 
   const caregiverMainLinks: NavLink[] = [
     {
@@ -80,26 +80,26 @@ export function AppShell({
     },
   ];
 
-  const caregiverElderLinks: NavLink[] = activeElderId
+  const caregiverElderLinks: NavLink[] = activeElderSlug
     ? [
         {
-          href: `/cuidador/${activeElderId}/dashboard`,
+          href: elderCarePath(activeElderSlug, "dashboard"),
           label: "Resumen",
           description: "Alertas y actividad en vivo",
           icon: LayoutDashboard,
         },
         {
-          href: `/cuidador/${activeElderId}/configuracion`,
+          href: elderCarePath(activeElderSlug, "configuracion"),
           label: "Plan de cuidado",
           description: "Medicamentos, citas y dieta",
           icon: ClipboardList,
         },
         {
-          href: `/cuidador/${activeElderId}/perfil`,
+          href: elderCarePath(activeElderSlug, "perfil"),
           label: "Perfil y ajustes",
           description: "Foto, datos y notificaciones",
           icon: UserCog,
-          match: (p) => p.includes(`/cuidador/${activeElderId}/perfil`),
+          match: (p) => p.includes(elderCarePath(activeElderSlug, "perfil")),
         },
       ]
     : [];
@@ -198,11 +198,11 @@ export function AppShell({
             {elders.map((e) => (
               <Link
                 key={e.id}
-                href={`/cuidador/${e.id}/dashboard`}
+                href={elderCarePath(e.slug, "dashboard")}
                 onClick={() => setMobileOpen(false)}
                 className={cn(
                   "flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors",
-                  activeElderId === e.id
+                  activeElderSlug === e.slug
                     ? "bg-white font-semibold text-care-accent-dark shadow-sm"
                     : "text-care-muted hover:bg-care-secondary/30"
                 )}
@@ -301,7 +301,7 @@ export function AppShell({
           icon: LayoutGrid,
           match: (p) => p === "/cuidador/resumen",
         },
-        ...(activeElderId ? contextualLinks : []),
+        ...(activeElderSlug ? contextualLinks : []),
         {
           href: "/cuidador",
           label: "Personas",
@@ -377,8 +377,8 @@ export function AppShell({
                 const active = isActive(pathname, link.href, link.match);
                 const isElderContextLink =
                   activeElder &&
-                  activeElderId &&
-                  link.href.startsWith(`/cuidador/${activeElderId}/`);
+                  activeElderSlug &&
+                  link.href.startsWith(elderCarePath(activeElderSlug));
                 return (
                   <Link
                     key={link.href}

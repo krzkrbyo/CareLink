@@ -46,10 +46,18 @@ export async function getDashboardData(elderId: string) {
       new Date(i.created_at).toDateString() === new Date().toDateString()
   );
   const nextAppointment = appointments?.find(
-    (a) => a.type === "cita" && new Date(a.starts_at) >= new Date()
+    (a) =>
+      a.type === "cita" &&
+      new Date(a.starts_at) >= new Date() &&
+      a.status !== "cancelled" &&
+      a.status !== "completed"
   );
   const nextExam = appointments?.find(
-    (a) => a.type === "examen" && new Date(a.starts_at) >= new Date()
+    (a) =>
+      a.type === "examen" &&
+      new Date(a.starts_at) >= new Date() &&
+      a.status !== "cancelled" &&
+      a.status !== "completed"
   );
 
   const prohibited =

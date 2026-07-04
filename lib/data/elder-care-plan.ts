@@ -7,6 +7,7 @@ import {
   isDateInTreatmentRange,
   parseMedicationSchedule,
 } from "@/lib/medications/schedule";
+import { EXAM_SUBTYPE_LABELS } from "@/lib/appointments/types";
 import type { Appointment, FoodRule, Medication } from "@/types/database";
 
 export interface ElderMedicationView {
@@ -27,12 +28,19 @@ export interface ElderAppointmentView {
   title: string;
   type: "cita" | "examen";
   typeLabel: string;
+  examSubtypeLabel: string | null;
   startsAt: string;
   dateLabel: string;
   timeLabel: string;
   isToday: boolean;
   isPast: boolean;
   notes: string | null;
+  preparationNotes: string | null;
+  facilityName: string | null;
+  professionalName: string | null;
+  locationText: string | null;
+  facilityPhone: string | null;
+  professionalPhone: string | null;
 }
 
 export interface ElderFoodRuleView {
@@ -331,11 +339,28 @@ export async function getElderCarePlan(): Promise<ElderCarePlan> {
         .order("due_at"),
     ]);
 
+  const apptList = (appointments ?? []) as Appointment[];
+  const facilityIds = apptList.map((a) => a.facility_id).filter(Boolean) as string[];
+  const professionalIds = apptList.map((a) => a.professional_id).filter(Boolean) as string[];
+
+  const [{ data: facilities }, { data: professionals }] = await Promise.all([
+    facilityIds.length
+      ? supabase.from("medical_facilities").select("id, phone").in("id", facilityIds)
+      : Promise.resolve({ data: [] }),
+    professionalIds.length
+      ? supabase.from("medical_professionals").select("id, phone, specialty").in("id", professionalIds)
+      : Promise.resolve({ data: [] }),
+  ]);
+
+  const facilityPhoneMap = new Map(facilities?.map((f) => [f.id, f.phone]) ?? []);
+  const professionalPhoneMap = new Map(professionals?.map((p) => [p.id, p.phone]) ?? []);
+
   const activeMeds = (medications ?? []).filter((m) => m.active !== false);
   const medicationViews = activeMeds.map((m) => buildMedicationView(m as Medication, now));
 
-  const appointmentViews: ElderAppointmentView[] = (appointments ?? []).map((a) => {
-    const appt = a as Appointment;
+  const appointmentViews: ElderAppointmentView[] = apptList
+    .filter((a) => a.status !== "cancelled" && a.status !== "completed")
+    .map((appt) => {
     const date = new Date(appt.starts_at);
     const isToday = date.toDateString() === now.toDateString();
     return {
@@ -343,12 +368,23 @@ export async function getElderCarePlan(): Promise<ElderCarePlan> {
       title: appt.title,
       type: appt.type,
       typeLabel: appt.type === "examen" ? "Examen médico" : "Cita médica",
+      examSubtypeLabel: appt.exam_subtype
+        ? EXAM_SUBTYPE_LABELS[appt.exam_subtype as keyof typeof EXAM_SUBTYPE_LABELS]
+        : null,
       startsAt: appt.starts_at,
       dateLabel: formatAppointmentDate(date),
       timeLabel: date.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" }),
       isToday,
       isPast: date.getTime() < now.getTime(),
       notes: appt.notes,
+      preparationNotes: appt.preparation_notes,
+      facilityName: appt.facility_name,
+      professionalName: appt.professional_name,
+      locationText: appt.location_text,
+      facilityPhone: appt.facility_id ? facilityPhoneMap.get(appt.facility_id) ?? null : null,
+      professionalPhone: appt.professional_id
+        ? professionalPhoneMap.get(appt.professional_id) ?? null
+        : null,
     };
   });
 

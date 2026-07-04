@@ -3,26 +3,31 @@
 import { useState, useTransition } from "react";
 import {
   deleteMedication,
-  createAppointment,
-  deleteAppointment,
-  createFoodRule,
   deleteFoodRule,
+  createFoodRule,
 } from "@/app/actions/caregiver";
 import { MedicationScheduleForm } from "@/components/caregiver/MedicationScheduleForm";
+import { AppointmentScheduleForm } from "@/components/caregiver/AppointmentScheduleForm";
+import { AppointmentList } from "@/components/caregiver/AppointmentList";
+import { MedicalCatalogPanel } from "@/components/caregiver/MedicalCatalogPanel";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { CalendarClock, CalendarPlus, Pill, Salad, Trash2 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { IconBox } from "@/components/ui/icon-box";
 import { formatMedicationScheduleSummary } from "@/lib/medications/schedule";
 import type { Medication, Appointment, FoodRule } from "@/types/database";
+import type { MedicalCatalog } from "@/lib/appointments/types";
 
 interface ConfigTabsProps {
   elderId: string;
   medications: Medication[];
   appointments: Appointment[];
   foodRules: FoodRule[];
+  catalog: MedicalCatalog;
 }
 
 const TABS = [
@@ -53,10 +58,12 @@ export function ConfigTabs({
   medications,
   appointments,
   foodRules,
+  catalog,
 }: ConfigTabsProps) {
   const [tab, setTab] = useState<TabId>("medicamentos");
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState("");
+  const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
 
   return (
     <div>
@@ -117,61 +124,26 @@ export function ConfigTabs({
       )}
 
       {tab === "citas" && (
-        <div className="grid gap-6 lg:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>Agendar cita o examen</CardTitle>
-              <p className="text-sm text-care-muted">
-                Programe consultas médicas y estudios de laboratorio.
-              </p>
-            </CardHeader>
-            <CardContent>
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  const fd = new FormData(e.currentTarget);
-                  startTransition(async () => {
-                    await createAppointment(elderId, {
-                      title: fd.get("title") as string,
-                      type: fd.get("type") as "cita" | "examen",
-                      startsAt: fd.get("startsAt") as string,
-                      notes: fd.get("notes") as string,
-                    });
-                    setMessage("Evento agregado al calendario");
-                    e.currentTarget.reset();
-                  });
-                }}
-                className="space-y-3"
-              >
-                <input name="title" required placeholder="Título del evento" className="care-input" />
-                <select name="type" className="care-input">
-                  <option value="cita">Cita médica</option>
-                  <option value="examen">Examen</option>
-                </select>
-                <input name="startsAt" type="datetime-local" required className="care-input" />
-                <input name="notes" placeholder="Notas" className="care-input" />
-                <Button type="submit" disabled={pending} className="w-full">
-                  Guardar evento
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
-          <ItemList
-            icon={CalendarClock}
-            items={appointments.map((a) => ({
-              id: a.id,
-              title: a.title,
-              subtitle: `${a.type} · ${new Date(a.starts_at).toLocaleString("es-MX")}`,
-            }))}
-            onDelete={(id) =>
-              startTransition(async () => {
-                await deleteAppointment(id, elderId);
-                setMessage("Evento eliminado");
-              })
-            }
-            pending={pending}
-            emptyText="No hay citas ni exámenes registrados."
-          />
+        <div className="space-y-6">
+          <div className="grid gap-6 lg:grid-cols-2">
+            <AppointmentScheduleForm
+              key={editingAppointment?.id ?? "new"}
+              elderId={elderId}
+              catalog={catalog}
+              editing={editingAppointment}
+              onSuccess={setMessage}
+              onCancelEdit={() => setEditingAppointment(null)}
+            />
+            <AppointmentList
+              elderId={elderId}
+              appointments={appointments}
+              editingId={editingAppointment?.id ?? null}
+              onEdit={setEditingAppointment}
+              onNew={() => setEditingAppointment(null)}
+              onMessage={setMessage}
+            />
+          </div>
+          <MedicalCatalogPanel elderId={elderId} catalog={catalog} onMessage={setMessage} />
         </div>
       )}
 
@@ -200,13 +172,13 @@ export function ConfigTabs({
                 }}
                 className="space-y-3"
               >
-                <select name="type" className="care-input">
+                <Select name="type">
                   <option value="prohibited">Prohibido</option>
                   <option value="reduce">Reducir</option>
                   <option value="recommendation">Recomendación</option>
                   <option value="allergen">Alérgeno</option>
-                </select>
-                <input name="label" required placeholder="Ej: sal, tortillas, lácteos" className="care-input" />
+                </Select>
+                <Input name="label" required placeholder="Ej: sal, tortillas, lácteos" />
                 <Button type="submit" disabled={pending} className="w-full">
                   Guardar regla
                 </Button>

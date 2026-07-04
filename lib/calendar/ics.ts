@@ -9,6 +9,7 @@ export interface ICSEvent {
   uid: string;
   summary: string;
   description?: string;
+  location?: string;
   start: Date;
   end: Date;
   rrule?: string;
@@ -27,6 +28,7 @@ function buildEventLines(event: ICSEvent): string[] {
     `DTEND:${dtEnd}`,
     `SUMMARY:${event.summary}`,
     event.description ? `DESCRIPTION:${event.description.replace(/\n/g, "\\n")}` : "",
+    event.location ? `LOCATION:${event.location.replace(/,/g, "\\,")}` : "",
     event.rrule ? `RRULE:${event.rrule}` : "",
     "END:VEVENT",
   ].filter(Boolean);

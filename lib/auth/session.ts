@@ -2,10 +2,41 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { Database } from "@/types/database";
 import { enrichEldersWithAvatars, type ElderWithAvatar } from "@/lib/data/elder-display";
+import { isElderUuid } from "@/lib/elders/slug";
 
 export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 export type Elder = Database["public"]["Tables"]["elders"]["Row"];
 export type CaregiverElder = ElderWithAvatar;
+
+export async function resolveElderRef(ref: string) {
+  const supabase = await createClient();
+  const query = supabase.from("elders").select("id, slug");
+
+  const { data } = isElderUuid(ref)
+    ? await query.eq("id", ref).maybeSingle()
+    : await query.eq("slug", ref).maybeSingle();
+
+  if (!data) return null;
+  return { elderId: data.id, slug: data.slug };
+}
+
+export async function requireCaregiverElderAccess(ref: string) {
+  const resolved = await resolveElderRef(ref);
+  if (!resolved) redirect("/cuidador");
+
+  const { user, profile } = await requireCaregiver();
+  const supabase = await createClient();
+
+  const { data: link } = await supabase
+    .from("caregiver_elder_links")
+    .select("id")
+    .eq("caregiver_id", user.id)
+    .eq("elder_id", resolved.elderId)
+    .single();
+
+  if (!link) redirect("/cuidador");
+  return { user, profile, elderId: resolved.elderId, slug: resolved.slug };
+}
 
 export async function getSessionUser() {
   const supabase = await createClient();
@@ -74,21 +105,6 @@ export async function getCaregiverElders(caregiverId: string): Promise<Caregiver
     }) ?? [];
 
   return enrichEldersWithAvatars(elders);
-}
-
-export async function requireCaregiverElderAccess(elderId: string) {
-  const { user, profile } = await requireCaregiver();
-  const supabase = await createClient();
-
-  const { data: link } = await supabase
-    .from("caregiver_elder_links")
-    .select("id")
-    .eq("caregiver_id", user.id)
-    .eq("elder_id", elderId)
-    .single();
-
-  if (!link) redirect("/cuidador");
-  return { user, profile, elderId };
 }
 
 export async function verifyCaregiverElderAccess(

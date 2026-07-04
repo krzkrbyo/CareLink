@@ -1,16 +1,18 @@
 import { createClient } from "@/lib/supabase/server";
-import { requireCaregiverElderAccess } from "@/lib/auth/session";
 import { ConfigTabs } from "@/components/caregiver/ConfigTabs";
 import { PageHeader } from "@/components/layout/page-header";
 import { getElderWithAvatar } from "@/lib/data/elder-display";
+import { getMedicalCatalog } from "@/app/actions/medical-catalog";
+import { requireElderCarePage } from "@/lib/elders/page-access";
+import { elderCarePath } from "@/lib/elders/routes";
 
 export default async function ConfiguracionPage({
   params,
 }: {
-  params: Promise<{ elderId: string }>;
+  params: Promise<{ slug: string }>;
 }) {
-  const { elderId } = await params;
-  await requireCaregiverElderAccess(elderId);
+  const { slug } = await params;
+  const { elderId } = await requireElderCarePage(slug, "configuracion");
   const supabase = await createClient();
 
   const elder = await getElderWithAvatar(elderId);
@@ -19,10 +21,12 @@ export default async function ConfiguracionPage({
     { data: medications },
     { data: appointments },
     { data: foodRules },
+    catalog,
   ] = await Promise.all([
     supabase.from("medications").select("*").eq("elder_id", elderId).order("created_at"),
     supabase.from("appointments").select("*").eq("elder_id", elderId).order("starts_at"),
     supabase.from("food_rules").select("*").eq("elder_id", elderId).order("created_at"),
+    getMedicalCatalog(elderId),
   ]);
 
   return (
@@ -32,7 +36,7 @@ export default async function ConfiguracionPage({
         description="Configure medicamentos, citas médicas y reglas alimenticias. Los cambios se reflejan en el portal del adulto mayor y en las alertas."
         breadcrumbs={[
           { label: "Mis personas", href: "/cuidador" },
-          { label: elder?.full_name ?? "Plan", href: `/cuidador/${elderId}/dashboard` },
+          { label: elder?.full_name ?? "Plan", href: elderCarePath(slug, "dashboard") },
           { label: "Plan de cuidado" },
         ]}
         avatar={
@@ -45,6 +49,7 @@ export default async function ConfiguracionPage({
         medications={medications ?? []}
         appointments={appointments ?? []}
         foodRules={foodRules ?? []}
+        catalog={catalog}
       />
     </div>
   );

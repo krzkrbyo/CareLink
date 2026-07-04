@@ -16,6 +16,7 @@ import { HorizontalBarChart } from "@/components/charts/HorizontalBarChart";
 import { IconBox } from "@/components/ui/icon-box";
 import { Button } from "@/components/ui/button";
 import { UserAvatar } from "@/components/ui/user-avatar";
+import { elderCarePath } from "@/lib/elders/routes";
 
 export async function OverviewDashboardView() {
   const overview = await getCaregiverOverview();
@@ -105,7 +106,7 @@ export async function OverviewDashboardView() {
             {summaries.map((s) => (
               <Link
                 key={s.elder.id}
-                href={`/cuidador/${s.elder.id}/dashboard`}
+                href={elderCarePath(s.elder.slug, "dashboard")}
                 className="group block"
               >
                 <article

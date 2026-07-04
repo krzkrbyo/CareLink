@@ -9,13 +9,16 @@ import {
   formatMedicationScheduleSummary,
   getNextOccurrence,
 } from "@/lib/medications/schedule";
+import {
+  buildReminderMessages,
+  resolveAppointmentSnapshots,
+} from "@/lib/appointments/build-payload";
+import type { AppointmentInput, AppointmentStatus } from "@/lib/appointments/types";
+import { createUniqueElderSlug } from "@/lib/elders/slug";
+import { revalidateElderCarePaths } from "@/lib/elders/revalidate";
 
-function revalidateCaregiver(elderId: string) {
-  revalidatePath("/adulto");
-  revalidatePath("/cuidador/dashboard");
-  revalidatePath(`/cuidador/${elderId}/dashboard`);
-  revalidatePath(`/cuidador/${elderId}/configuracion`);
-  revalidatePath("/cuidador/configuracion");
+async function revalidateCaregiver(elderId: string) {
+  await revalidateElderCarePaths(elderId);
 }
 
 // --- Medications CRUD ---
@@ -107,55 +110,145 @@ export async function deleteMedication(id: string, elderId: string) {
 
 // --- Appointments CRUD ---
 
-export async function createAppointment(elderId: string, data: {
-  title: string;
-  type: "cita" | "examen";
-  startsAt: string;
-  notes?: string;
-}) {
+export async function createAppointment(elderId: string, data: AppointmentInput) {
   await requireCaregiverElderAccess(elderId);
   const supabase = await createClient();
 
-  const { error } = await supabase.from("appointments").insert({
-    elder_id: elderId,
-    title: data.title,
-    type: data.type,
-    starts_at: new Date(data.startsAt).toISOString(),
-    notes: data.notes,
-    calendar_export_enabled: true,
-  });
+  const resolved = await resolveAppointmentSnapshots(supabase, elderId, data);
+  const startsAt = new Date(data.startsAt).toISOString();
+
+  const { data: appointment, error } = await supabase
+    .from("appointments")
+    .insert({
+      elder_id: elderId,
+      title: resolved.title,
+      type: data.type,
+      starts_at: startsAt,
+      notes: data.notes?.trim() || null,
+      facility_id: resolved.facilityId,
+      professional_id: resolved.professionalId,
+      facility_name: resolved.facilityName,
+      professional_name: resolved.professionalName,
+      location_text: resolved.locationText,
+      exam_subtype: data.type === "examen" ? data.examSubtype ?? null : null,
+      preparation_notes: data.preparationNotes?.trim() || null,
+      duration_minutes: data.durationMinutes ?? 60,
+      status: data.status ?? "scheduled",
+      calendar_export_enabled: true,
+    })
+    .select("id")
+    .single();
 
   if (error) throw new Error(error.message);
 
   const reminderType = data.type === "examen" ? "exam" : "appointment";
-  await supabase.from("reminders").insert({
-    elder_id: elderId,
-    type: reminderType,
-    title: data.title,
-    message_text: FALLBACK_REMINDERS[reminderType]?.adultMessage ?? data.title,
-    caregiver_message_text: `${data.title} programado.`,
-    due_at: new Date(data.startsAt).toISOString(),
-    status: "pending",
-  });
+  const messages = buildReminderMessages(data, resolved);
+  const status = data.status ?? "scheduled";
+
+  if (status === "scheduled" || status === "rescheduled") {
+    await supabase.from("reminders").insert({
+      elder_id: elderId,
+      appointment_id: appointment.id,
+      type: reminderType,
+      title: resolved.title,
+      message_text: messages.adultMessage,
+      caregiver_message_text: messages.caregiverMessage,
+      due_at: startsAt,
+      status: "pending",
+    });
+  }
+
+  revalidateCaregiver(elderId);
+  return { success: true, id: appointment.id };
+}
+
+export async function updateAppointment(id: string, elderId: string, data: AppointmentInput) {
+  await requireCaregiverElderAccess(elderId);
+  const supabase = await createClient();
+
+  const resolved = await resolveAppointmentSnapshots(supabase, elderId, data);
+  const startsAt = new Date(data.startsAt).toISOString();
+  const status = data.status ?? "scheduled";
+
+  const { error } = await supabase
+    .from("appointments")
+    .update({
+      title: resolved.title,
+      type: data.type,
+      starts_at: startsAt,
+      notes: data.notes?.trim() || null,
+      facility_id: resolved.facilityId,
+      professional_id: resolved.professionalId,
+      facility_name: resolved.facilityName,
+      professional_name: resolved.professionalName,
+      location_text: resolved.locationText,
+      exam_subtype: data.type === "examen" ? data.examSubtype ?? null : null,
+      preparation_notes: data.preparationNotes?.trim() || null,
+      duration_minutes: data.durationMinutes ?? 60,
+      status,
+    })
+    .eq("id", id)
+    .eq("elder_id", elderId);
+
+  if (error) throw new Error(error.message);
+
+  const messages = buildReminderMessages(data, resolved);
+  const reminderType = data.type === "examen" ? "exam" : "appointment";
+
+  if (status === "completed" || status === "cancelled") {
+    await supabase
+      .from("reminders")
+      .update({ status: "completed" })
+      .eq("appointment_id", id)
+      .eq("status", "pending");
+  } else {
+    await supabase
+      .from("reminders")
+      .update({
+        title: resolved.title,
+        type: reminderType,
+        message_text: messages.adultMessage,
+        caregiver_message_text: messages.caregiverMessage,
+        due_at: startsAt,
+        status: "pending",
+      })
+      .eq("appointment_id", id);
+  }
 
   revalidateCaregiver(elderId);
   return { success: true };
 }
 
-export async function updateAppointment(id: string, elderId: string, data: {
-  title?: string;
-  type?: "cita" | "examen";
-  startsAt?: string;
-  notes?: string;
-}) {
+export async function updateAppointmentStatus(
+  id: string,
+  elderId: string,
+  status: AppointmentStatus
+) {
   await requireCaregiverElderAccess(elderId);
   const supabase = await createClient();
-  const payload: Record<string, unknown> = { ...data };
-  if (data.startsAt) payload.starts_at = new Date(data.startsAt).toISOString();
-  delete payload.startsAt;
 
-  const { error } = await supabase.from("appointments").update(payload).eq("id", id).eq("elder_id", elderId);
+  const { error } = await supabase
+    .from("appointments")
+    .update({ status })
+    .eq("id", id)
+    .eq("elder_id", elderId);
+
   if (error) throw new Error(error.message);
+
+  if (status === "completed" || status === "cancelled") {
+    await supabase
+      .from("reminders")
+      .update({ status: "completed" })
+      .eq("appointment_id", id)
+      .eq("status", "pending");
+  } else {
+    await supabase
+      .from("reminders")
+      .update({ status: "pending" })
+      .eq("appointment_id", id)
+      .eq("status", "completed");
+  }
+
   revalidateCaregiver(elderId);
   return { success: true };
 }
@@ -163,7 +256,15 @@ export async function updateAppointment(id: string, elderId: string, data: {
 export async function deleteAppointment(id: string, elderId: string) {
   await requireCaregiverElderAccess(elderId);
   const supabase = await createClient();
-  const { error } = await supabase.from("appointments").delete().eq("id", id).eq("elder_id", elderId);
+
+  await supabase.from("reminders").delete().eq("appointment_id", id);
+
+  const { error } = await supabase
+    .from("appointments")
+    .delete()
+    .eq("id", id)
+    .eq("elder_id", elderId);
+
   if (error) throw new Error(error.message);
   revalidateCaregiver(elderId);
   return { success: true };
@@ -259,6 +360,7 @@ export async function createElderAndLink(data: {
   });
 
   const supabase = await createClient();
+  const slug = await createUniqueElderSlug(supabase, data.fullName);
 
   const { data: elder, error: elderError } = await supabase
     .from("elders")
@@ -268,6 +370,7 @@ export async function createElderAndLink(data: {
       main_caregiver_name: profile.full_name,
       emergency_contact: data.emergencyContact,
       auth_user_id: authUserId,
+      slug,
     })
     .select()
     .single();
@@ -293,6 +396,7 @@ export async function createElderAndLink(data: {
   return {
     success: true,
     elderId: elder.id,
+    elderSlug: slug,
     elderEmail: email,
   };
 }

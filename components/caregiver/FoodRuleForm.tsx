@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { DEMO_ELDER_ID } from "@/lib/demo-data/seed-ids";
 
 export function FoodRuleForm() {
@@ -30,8 +32,8 @@ export function FoodRuleForm() {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <select
-            className="care-input text-lg"
+          <Select
+            inputSize="lg"
             value={type}
             onChange={(e) => setType(e.target.value as typeof type)}
           >
@@ -39,9 +41,9 @@ export function FoodRuleForm() {
             <option value="reduce">Reducir</option>
             <option value="recommendation">Recomendación</option>
             <option value="allergen">Alérgeno</option>
-          </select>
-          <input
-            className="care-input text-lg"
+          </Select>
+          <Input
+            inputSize="lg"
             placeholder="Ej: tortillas, sal, fruta"
             value={label}
             onChange={(e) => setLabel(e.target.value)}

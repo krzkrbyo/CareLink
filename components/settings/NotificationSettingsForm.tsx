@@ -12,6 +12,9 @@ import {
 import { DEFAULT_NOTIFICATION_SETTINGS, type NotificationSettings } from "@/lib/settings/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
+import { FormField } from "@/components/ui/form-field";
+import { Input } from "@/components/ui/input";
 import { Bell, Moon } from "lucide-react";
 
 interface NotificationSettingsFormProps {
@@ -30,22 +33,13 @@ interface ToggleProps {
 
 function Toggle({ id, label, description, checked, onChange }: ToggleProps) {
   return (
-    <label
-      htmlFor={id}
-      className="flex cursor-pointer items-start gap-3 rounded-xl border border-care-secondary/50 bg-care-primary/30 p-4 transition-colors hover:bg-care-primary/50"
-    >
-      <input
-        id={id}
-        type="checkbox"
-        checked={checked}
-        onChange={(e) => onChange(e.target.checked)}
-        className="mt-1 h-5 w-5 shrink-0 accent-care-accent-dark"
-      />
-      <div>
-        <p className="font-semibold text-care-foreground">{label}</p>
-        <p className="text-sm text-care-muted">{description}</p>
-      </div>
-    </label>
+    <Checkbox
+      id={id}
+      checked={checked}
+      onChange={(e) => onChange(e.currentTarget.checked)}
+      label={label}
+      description={description}
+    />
   );
 }
 
@@ -195,30 +189,22 @@ export function NotificationSettingsForm({
 
           {settings.quietHoursEnabled && (
             <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label htmlFor="quietStart" className="mb-1 block text-sm font-semibold">
-                  Desde
-                </label>
-                <input
+              <FormField id="quietStart" label="Desde">
+                <Input
                   id="quietStart"
                   type="time"
                   value={settings.quietHoursStart}
                   onChange={(e) => update("quietHoursStart", e.target.value)}
-                  className="w-full rounded-xl border-2 border-care-secondary/60 px-4 py-3"
                 />
-              </div>
-              <div>
-                <label htmlFor="quietEnd" className="mb-1 block text-sm font-semibold">
-                  Hasta
-                </label>
-                <input
+              </FormField>
+              <FormField id="quietEnd" label="Hasta">
+                <Input
                   id="quietEnd"
                   type="time"
                   value={settings.quietHoursEnd}
                   onChange={(e) => update("quietHoursEnd", e.target.value)}
-                  className="w-full rounded-xl border-2 border-care-secondary/60 px-4 py-3"
                 />
-              </div>
+              </FormField>
             </div>
           )}
         </CardContent>

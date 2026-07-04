@@ -6,7 +6,10 @@ import { UserPlus } from "lucide-react";
 import { signUp } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { FormField } from "@/components/ui/form-field";
 import { IconBox } from "@/components/ui/icon-box";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 
 export default function SignUpPage() {
   const [error, setError] = useState<string | null>(null);
@@ -32,44 +35,32 @@ export default function SignUpPage() {
         </CardHeader>
         <CardContent>
           <form action={handleSubmit} className="space-y-4">
-            <div>
-              <label className="mb-1 block text-sm font-medium text-care-foreground">
-                Nombre completo
-              </label>
-              <input
+            <FormField id="fullName" label="Nombre completo">
+              <Input
+                id="fullName"
                 name="fullName"
                 required
-                className="care-input"
                 placeholder="Ana García"
               />
-            </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium text-care-foreground">
-                Correo
-              </label>
-              <input name="email" type="email" required className="care-input" />
-            </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium text-care-foreground">
-                Contraseña
-              </label>
-              <input
+            </FormField>
+            <FormField id="email" label="Correo">
+              <Input id="email" name="email" type="email" required />
+            </FormField>
+            <FormField id="password" label="Contraseña">
+              <Input
+                id="password"
                 name="password"
                 type="password"
                 required
                 minLength={8}
-                className="care-input"
               />
-            </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium text-care-foreground">
-                Tipo de cuenta
-              </label>
-              <select name="role" className="care-input">
+            </FormField>
+            <FormField id="role" label="Tipo de cuenta">
+              <Select id="role" name="role">
                 <option value="caregiver">Familiar / Cuidador</option>
                 <option value="elder">Adulto mayor</option>
-              </select>
-            </div>
+              </Select>
+            </FormField>
             {error && (
               <p className="rounded-lg bg-red-50 p-3 text-red-700">{error}</p>
             )}

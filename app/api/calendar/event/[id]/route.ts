@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { generateICS } from "@/lib/calendar/ics";
 import { verifyCaregiverElderAccess } from "@/lib/auth/session";
+import { EXAM_SUBTYPE_LABELS } from "@/lib/appointments/types";
 
 export async function GET(
   _req: Request,
@@ -25,6 +26,10 @@ export async function GET(
     return NextResponse.json({ error: "Event not found" }, { status: 404 });
   }
 
+  if (appointment.calendar_export_enabled === false) {
+    return NextResponse.json({ error: "Export disabled" }, { status: 403 });
+  }
+
   const hasAccess =
     (await verifyCaregiverElderAccess(user.id, appointment.elder_id)) ||
     (await supabase
@@ -39,12 +44,33 @@ export async function GET(
   }
 
   const start = new Date(appointment.starts_at);
-  const end = new Date(start.getTime() + 60 * 60 * 1000);
+  const durationMs = (appointment.duration_minutes ?? 60) * 60 * 1000;
+  const end = new Date(start.getTime() + durationMs);
+
+  const descriptionParts: string[] = [];
+  if (appointment.professional_name) {
+    descriptionParts.push(`Doctor: ${appointment.professional_name}`);
+  }
+  if (appointment.facility_name) {
+    descriptionParts.push(`Lugar: ${appointment.facility_name}`);
+  }
+  if (appointment.exam_subtype) {
+    descriptionParts.push(
+      `Tipo: ${EXAM_SUBTYPE_LABELS[appointment.exam_subtype as keyof typeof EXAM_SUBTYPE_LABELS] ?? appointment.exam_subtype}`
+    );
+  }
+  if (appointment.preparation_notes) {
+    descriptionParts.push(`Preparación: ${appointment.preparation_notes}`);
+  }
+  if (appointment.notes) {
+    descriptionParts.push(appointment.notes);
+  }
 
   const ics = generateICS({
     uid: `carelink-${appointment.id}@carelink.app`,
     summary: appointment.title,
-    description: appointment.notes ?? `CareLink — ${appointment.type}`,
+    description: descriptionParts.join("\\n") || `CareLink — ${appointment.type}`,
+    location: appointment.location_text ?? appointment.facility_name ?? undefined,
     start,
     end,
   });

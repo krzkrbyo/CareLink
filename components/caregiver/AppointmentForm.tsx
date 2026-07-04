@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { DEMO_ELDER_ID } from "@/lib/demo-data/seed-ids";
 
 export function AppointmentForm() {
@@ -31,24 +33,24 @@ export function AppointmentForm() {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-            className="care-input text-lg"
+          <Input
+            inputSize="lg"
             placeholder="Título"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             required
           />
-          <select
-            className="care-input text-lg"
+          <Select
+            inputSize="lg"
             value={type}
             onChange={(e) => setType(e.target.value as "cita" | "examen")}
           >
             <option value="cita">Cita médica</option>
             <option value="examen">Examen</option>
-          </select>
-          <input
+          </Select>
+          <Input
             type="datetime-local"
-            className="care-input text-lg"
+            inputSize="lg"
             value={datetime}
             onChange={(e) => setDatetime(e.target.value)}
             required
