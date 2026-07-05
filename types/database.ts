@@ -37,6 +37,7 @@ export interface Database {
           last_activity_at: string | null;
           mood_today: string | null;
           auth_user_id: string | null;
+          slug: string;
           created_at: string;
         };
         Insert: Partial<Database["public"]["Tables"]["elders"]["Row"]> & {
@@ -76,6 +77,15 @@ export interface Database {
           starts_at: string;
           notes: string | null;
           calendar_export_enabled: boolean | null;
+          facility_id: string | null;
+          professional_id: string | null;
+          facility_name: string | null;
+          professional_name: string | null;
+          location_text: string | null;
+          exam_subtype: "sangre" | "imagen" | "cardiaco" | "otro" | null;
+          preparation_notes: string | null;
+          duration_minutes: number | null;
+          status: "scheduled" | "completed" | "cancelled" | "rescheduled" | null;
           created_at: string;
         };
         Insert: Partial<Database["public"]["Tables"]["appointments"]["Row"]> & {
@@ -85,6 +95,40 @@ export interface Database {
           starts_at: string;
         };
         Update: Partial<Database["public"]["Tables"]["appointments"]["Row"]>;
+      };
+      medical_facilities: {
+        Row: {
+          id: string;
+          elder_id: string;
+          name: string;
+          type: "hospital" | "clinica" | "laboratorio" | "otro";
+          address: string | null;
+          phone: string | null;
+          notes: string | null;
+          created_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["medical_facilities"]["Row"]> & {
+          elder_id: string;
+          name: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["medical_facilities"]["Row"]>;
+      };
+      medical_professionals: {
+        Row: {
+          id: string;
+          elder_id: string;
+          facility_id: string | null;
+          full_name: string;
+          specialty: string | null;
+          phone: string | null;
+          notes: string | null;
+          created_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["medical_professionals"]["Row"]> & {
+          elder_id: string;
+          full_name: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["medical_professionals"]["Row"]>;
       };
       food_rules: {
         Row: {
@@ -113,6 +157,7 @@ export interface Database {
           audio_url: string | null;
           due_at: string | null;
           status: "pending" | "completed" | "missed";
+          appointment_id: string | null;
           created_at: string;
         };
         Insert: Partial<Database["public"]["Tables"]["reminders"]["Row"]> & {
@@ -183,5 +228,7 @@ export type Reminder = Database["public"]["Tables"]["reminders"]["Row"];
 export type Interaction = Database["public"]["Tables"]["interactions"]["Row"];
 export type Alert = Database["public"]["Tables"]["alerts"]["Row"];
 export type Appointment = Database["public"]["Tables"]["appointments"]["Row"];
+export type MedicalFacility = Database["public"]["Tables"]["medical_facilities"]["Row"];
+export type MedicalProfessional = Database["public"]["Tables"]["medical_professionals"]["Row"];
 export type Medication = Database["public"]["Tables"]["medications"]["Row"];
 export type FoodRule = Database["public"]["Tables"]["food_rules"]["Row"];

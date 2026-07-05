@@ -3,8 +3,10 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createElderAndLink } from "@/app/actions/caregiver";
+import { elderCarePath } from "@/lib/elders/routes";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 
 export function AddElderForm() {
   const router = useRouter();
@@ -41,7 +43,7 @@ export function AddElderForm() {
         );
         router.refresh();
         setTimeout(() => {
-          router.push(`/cuidador/${result.elderId}/dashboard`);
+          router.push(elderCarePath(result.elderSlug, "dashboard"));
         }, 1500);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Error al crear");
@@ -63,30 +65,26 @@ export function AddElderForm() {
             <legend className="text-sm font-semibold text-care-foreground">
               Datos personales
             </legend>
-            <input
+            <Input
               name="fullName"
               required
               placeholder="Nombre completo"
-              className="care-input"
             />
-            <input
+            <Input
               name="age"
               type="number"
               min={1}
               max={120}
               placeholder="Edad"
-              className="care-input"
             />
-            <input
+            <Input
               name="relationship"
               required
               placeholder="Relación contigo (ej: padre, madre, tío)"
-              className="care-input"
             />
-            <input
+            <Input
               name="emergencyContact"
               placeholder="Contacto de emergencia (opcional)"
-              className="care-input"
             />
           </fieldset>
 
@@ -98,31 +96,28 @@ export function AddElderForm() {
               Estas credenciales las usará la persona para entrar a su portal en{" "}
               <strong>/adulto</strong>
             </p>
-            <input
+            <Input
               name="elderEmail"
               type="email"
               required
               autoComplete="off"
               placeholder="Correo electrónico"
-              className="care-input"
             />
-            <input
+            <Input
               name="elderPassword"
               type="password"
               required
               minLength={8}
               autoComplete="new-password"
               placeholder="Contraseña (mínimo 8 caracteres)"
-              className="care-input"
             />
-            <input
+            <Input
               name="confirmPassword"
               type="password"
               required
               minLength={8}
               autoComplete="new-password"
               placeholder="Confirmar contraseña"
-              className="care-input"
             />
           </fieldset>
 

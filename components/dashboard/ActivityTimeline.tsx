@@ -37,7 +37,7 @@ export function ActivityTimeline({ interactions }: ActivityTimelineProps) {
   }
 
   return (
-    <ul className="space-y-3">
+    <ul className="care-list">
       {interactions.map((item) => {
         const config = typeConfig[item.type] ?? {
           label: item.type,
@@ -49,7 +49,7 @@ export function ActivityTimeline({ interactions }: ActivityTimelineProps) {
         return (
           <li
             key={item.id}
-            className="flex items-start gap-3 rounded-xl border border-care-secondary/50 bg-white p-3"
+            className="flex items-start justify-between gap-3 !border-care-secondary/50 !p-3"
           >
             <IconBox icon={Icon} tone={config.tone} size="sm" />
             <div className="min-w-0 flex-1">

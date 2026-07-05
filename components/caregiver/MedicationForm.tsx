@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { DEMO_ELDER_ID } from "@/lib/demo-data/seed-ids";
 
 export function MedicationForm() {
@@ -30,16 +31,16 @@ export function MedicationForm() {
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <input
-            className="care-input text-lg"
+          <Input
+            inputSize="lg"
             placeholder="Nombre del medicamento"
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
           />
-          <input
+          <Input
             type="time"
-            className="care-input text-lg"
+            inputSize="lg"
             value={time}
             onChange={(e) => setTime(e.target.value)}
           />

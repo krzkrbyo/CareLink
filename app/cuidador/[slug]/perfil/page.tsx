@@ -1,16 +1,17 @@
-import { requireCaregiverElderAccess } from "@/lib/auth/session";
 import { getManagedElderSettings } from "@/app/actions/elder-settings";
 import { ElderSettingsView } from "@/components/settings/ElderSettingsView";
 import { PageHeader } from "@/components/layout/page-header";
 import { getElderWithAvatar } from "@/lib/data/elder-display";
+import { requireElderCarePage } from "@/lib/elders/page-access";
+import { elderCarePath } from "@/lib/elders/routes";
 
 export default async function ElderPerfilPage({
   params,
 }: {
-  params: Promise<{ elderId: string }>;
+  params: Promise<{ slug: string }>;
 }) {
-  const { elderId } = await params;
-  await requireCaregiverElderAccess(elderId);
+  const { slug } = await params;
+  const { elderId } = await requireElderCarePage(slug, "perfil");
 
   const [elder, settings] = await Promise.all([
     getElderWithAvatar(elderId),
@@ -24,7 +25,7 @@ export default async function ElderPerfilPage({
         description="Administra la foto, datos personales, notificaciones y contraseña de acceso de esta persona."
         breadcrumbs={[
           { label: "Mis personas", href: "/cuidador" },
-          { label: elder?.full_name ?? "Persona", href: `/cuidador/${elderId}/dashboard` },
+          { label: elder?.full_name ?? "Persona", href: elderCarePath(slug, "dashboard") },
           { label: "Perfil y ajustes" },
         ]}
         avatar={

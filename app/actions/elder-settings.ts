@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { requireCaregiverElderAccess } from "@/lib/auth/session";
+import { revalidateElderCarePaths } from "@/lib/elders/revalidate";
 import {
   DEFAULT_NOTIFICATION_SETTINGS,
   parseNotificationSettings,
@@ -25,12 +26,9 @@ async function getElderAuthUserId(elderId: string) {
   return { authUserId: elder.auth_user_id, elderName: elder.full_name };
 }
 
-function revalidateElderSettings(elderId: string) {
-  revalidatePath(`/cuidador/${elderId}/perfil`);
-  revalidatePath(`/cuidador/${elderId}/dashboard`);
-  revalidatePath(`/cuidador/${elderId}/configuracion`);
+async function revalidateElderSettings(elderId: string) {
+  await revalidateElderCarePaths(elderId);
   revalidatePath("/cuidador", "layout");
-  revalidatePath("/cuidador/resumen");
   revalidatePath("/adulto", "layout");
 }
 

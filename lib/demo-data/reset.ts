@@ -1,6 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/server";
 import {
   DEMO_ELDER_ID,
+  DEMO_ELDER_SLUG,
   CAREGIVER_NAME,
   ELDER_NAME,
 } from "@/lib/demo-data/seed-ids";
@@ -65,12 +66,15 @@ export async function resetDemoData() {
   await admin.from("reminders").delete().eq("elder_id", elderId);
   await admin.from("food_rules").delete().eq("elder_id", elderId);
   await admin.from("appointments").delete().eq("elder_id", elderId);
+  await admin.from("medical_professionals").delete().eq("elder_id", elderId);
+  await admin.from("medical_facilities").delete().eq("elder_id", elderId);
   await admin.from("medications").delete().eq("elder_id", elderId);
   await admin.from("caregiver_elder_links").delete().eq("elder_id", elderId);
 
   await admin.from("elders").upsert({
     id: elderId,
     full_name: ELDER_NAME,
+    slug: DEMO_ELDER_SLUG,
     age: 78,
     main_caregiver_name: CAREGIVER_NAME,
     emergency_contact: "Ana - hija",
@@ -139,27 +143,81 @@ export async function resetDemoData() {
     },
   ]);
 
+  const { data: hospital } = await admin
+    .from("medical_facilities")
+    .insert({
+      elder_id: elderId,
+      name: "Hospital General San José",
+      type: "hospital",
+      address: "Av. Insurgentes Sur 1234, CDMX",
+      phone: "55 5000 1234",
+    })
+    .select("id")
+    .single();
+
+  const { data: lab } = await admin
+    .from("medical_facilities")
+    .insert({
+      elder_id: elderId,
+      name: "Laboratorio Clínico Central",
+      type: "laboratorio",
+      address: "Calle Reforma 456, CDMX",
+      phone: "55 5000 5678",
+    })
+    .select("id")
+    .single();
+
+  const { data: cardiologist } = await admin
+    .from("medical_professionals")
+    .insert({
+      elder_id: elderId,
+      facility_id: hospital?.id ?? null,
+      full_name: "Dr. Roberto Méndez",
+      specialty: "Cardiología",
+      phone: "55 5000 9999",
+    })
+    .select("id")
+    .single();
+
   const { data: appointment } = await admin
     .from("appointments")
     .insert({
       elder_id: elderId,
-      title: "Cita con cardiólogo",
+      title: "Consulta — Dr. Roberto Méndez (Cardiología)",
       type: "cita",
       starts_at: todayAt(15, 0).toISOString(),
-      notes: "Llevar documentos y exámenes",
+      notes: "Llevar documentos y exámenes previos",
+      facility_id: hospital?.id ?? null,
+      professional_id: cardiologist?.id ?? null,
+      facility_name: "Hospital General San José",
+      professional_name: "Dr. Roberto Méndez",
+      location_text: "Av. Insurgentes Sur 1234, CDMX",
+      duration_minutes: 60,
+      status: "scheduled",
       calendar_export_enabled: true,
     })
     .select("id")
     .single();
 
-  await admin.from("appointments").insert({
-    elder_id: elderId,
-    title: "Examen de sangre en ayunas",
-    type: "examen",
-    starts_at: tomorrowAt(7, 0).toISOString(),
-    notes: "Ayuno de 8 horas",
-    calendar_export_enabled: true,
-  });
+  const { data: examAppointment } = await admin
+    .from("appointments")
+    .insert({
+      elder_id: elderId,
+      title: "Examen de sangre — Laboratorio Clínico Central",
+      type: "examen",
+      starts_at: tomorrowAt(7, 0).toISOString(),
+      preparation_notes: "Ayuno de 8 horas. Llevar orden médica.",
+      notes: "Presentarse 15 minutos antes",
+      facility_id: lab?.id ?? null,
+      facility_name: "Laboratorio Clínico Central",
+      location_text: "Calle Reforma 456, CDMX",
+      exam_subtype: "sangre",
+      duration_minutes: 30,
+      status: "scheduled",
+      calendar_export_enabled: true,
+    })
+    .select("id")
+    .single();
 
   await admin.from("food_rules").insert([
     {
@@ -323,19 +381,24 @@ export async function resetDemoData() {
     },
     {
       elder_id: elderId,
+      appointment_id: appointment?.id ?? null,
       type: "appointment",
-      title: "Cita cardiólogo",
-      message_text: FALLBACK_REMINDERS.appointment.adultMessage,
-      caregiver_message_text: FALLBACK_REMINDERS.appointment.caregiverMessage,
+      title: "Consulta — Dr. Roberto Méndez (Cardiología)",
+      message_text:
+        "Don Manuel, hoy tiene cita con el Dr. Roberto Méndez en Hospital General San José a las 3:00 PM. Lleve sus documentos y exámenes.",
+      caregiver_message_text:
+        "Cita cardiólogo programada hoy 3:00 PM — Hospital General San José.",
       due_at: todayAt(14, 30).toISOString(),
       status: "pending",
     },
     {
       elder_id: elderId,
+      appointment_id: examAppointment?.id ?? null,
       type: "exam",
-      title: "Examen de sangre",
-      message_text: FALLBACK_REMINDERS.exam.adultMessage,
-      caregiver_message_text: FALLBACK_REMINDERS.exam.caregiverMessage,
+      title: "Examen de sangre — Laboratorio Clínico Central",
+      message_text:
+        "Don Manuel, mañana tiene examen de sangre en Laboratorio Clínico Central. Recuerde ayuno de 8 horas y llevar orden médica.",
+      caregiver_message_text: "Examen de sangre programado — ayuno 8 horas.",
       due_at: tomorrowAt(6, 30).toISOString(),
       status: "pending",
     },

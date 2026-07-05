@@ -5,7 +5,9 @@ import { updateProfileInfo } from "@/app/actions/settings";
 import { updateManagedElderProfile } from "@/app/actions/elder-settings";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { FormField } from "@/components/ui/form-field";
 
 interface ProfileInfoFormProps {
   fullName: string;
@@ -55,9 +57,6 @@ export function ProfileInfoForm({
     });
   }
 
-  const inputClass =
-    "w-full rounded-xl border-2 border-care-secondary/60 bg-white px-4 py-3 text-care-foreground outline-none transition-colors focus:border-care-accent-dark";
-
   return (
     <Card>
       <CardHeader>
@@ -65,56 +64,46 @@ export function ProfileInfoForm({
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="mb-1 block text-sm font-semibold text-care-foreground">
-              Correo electrónico
-            </label>
-            <input
+          <FormField id="email" label="Correo electrónico">
+            <Input
+              id="email"
               type="email"
               value={email}
               disabled
-              className={cn(inputClass, "cursor-not-allowed bg-care-primary/50 text-care-muted")}
+              className="cursor-not-allowed bg-care-primary/50 text-care-muted"
             />
             <p className="mt-1 text-xs text-care-muted">
               {managedByCaregiver
                 ? "Correo de acceso al portal del adulto mayor."
                 : "El correo no se puede cambiar desde aquí."}
             </p>
-          </div>
+          </FormField>
 
-          <div>
-            <label htmlFor="fullName" className="mb-1 block text-sm font-semibold text-care-foreground">
-              Nombre completo
-            </label>
-            <input
+          <FormField id="fullName" label="Nombre completo" required>
+            <Input
               id="fullName"
               type="text"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              className={inputClass}
               required
             />
-          </div>
+          </FormField>
 
-          <div>
-            <label htmlFor="phone" className="mb-1 block text-sm font-semibold text-care-foreground">
-              Teléfono de contacto
-            </label>
-            <input
+          <FormField id="phone" label="Teléfono de contacto">
+            <Input
               id="phone"
               type="tel"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
               placeholder="+52 55 1234 5678"
-              className={inputClass}
             />
-          </div>
+          </FormField>
 
-          <div>
-            <label htmlFor="bio" className="mb-1 block text-sm font-semibold text-care-foreground">
-              {managedByCaregiver ? "Notas y preferencias" : "Notas sobre ti como cuidador"}
-            </label>
-            <textarea
+          <FormField
+            id="bio"
+            label={managedByCaregiver ? "Notas y preferencias" : "Notas sobre ti como cuidador"}
+          >
+            <Textarea
               id="bio"
               value={bio}
               onChange={(e) => setBio(e.target.value)}
@@ -124,9 +113,8 @@ export function ProfileInfoForm({
                   ? "Gustos, hobbies, preferencias, datos relevantes..."
                   : "Experiencia, relación con las personas a tu cuidado..."
               }
-              className={cn(inputClass, "resize-none")}
             />
-          </div>
+          </FormField>
 
           {message && <p className="text-sm text-green-700">{message}</p>}
           {error && <p className="text-sm text-red-600">{error}</p>}

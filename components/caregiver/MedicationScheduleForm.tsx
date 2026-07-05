@@ -4,6 +4,8 @@ import { useMemo, useState, useTransition } from "react";
 import { createMedication } from "@/app/actions/caregiver";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { FormField } from "@/components/ui/form-field";
+import { Input } from "@/components/ui/input";
 import {
   ALL_WEEKDAYS,
   INTERVAL_HOUR_PRESETS,
@@ -170,24 +172,21 @@ export function MedicationScheduleForm({ elderId, onSuccess }: MedicationSchedul
             <h3 className="text-sm font-semibold uppercase tracking-wide text-care-muted">
               Información básica
             </h3>
-            <input
+            <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
               placeholder="Nombre del medicamento"
-              className="care-input"
             />
-            <input
+            <Input
               value={dose}
               onChange={(e) => setDose(e.target.value)}
               placeholder="Dosis por toma (ej: 1 tableta, 5 ml)"
-              className="care-input"
             />
-            <input
+            <Input
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Notas adicionales"
-              className="care-input"
             />
           </section>
 
@@ -195,14 +194,15 @@ export function MedicationScheduleForm({ elderId, onSuccess }: MedicationSchedul
             <h3 className="text-sm font-semibold uppercase tracking-wide text-care-muted">
               Duración del tratamiento
             </h3>
-            <label className="block text-sm text-care-muted">Fecha de inicio</label>
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => handleStartDateChange(e.target.value)}
-              required
-              className="care-input"
-            />
+            <FormField id="startDate" label="Fecha de inicio">
+              <Input
+                id="startDate"
+                type="date"
+                value={startDate}
+                onChange={(e) => handleStartDateChange(e.target.value)}
+                required
+              />
+            </FormField>
 
             <div className="grid grid-cols-2 gap-2">
               <button
@@ -237,25 +237,27 @@ export function MedicationScheduleForm({ elderId, onSuccess }: MedicationSchedul
             {durationMode === "fixed" && (
               <div className="grid gap-3 sm:grid-cols-2">
                 <div>
-                  <label className="mb-1 block text-sm text-care-muted">Duración (días)</label>
-                  <input
-                    type="number"
-                    min={1}
-                    max={365}
-                    value={durationDays}
-                    onChange={(e) => handleDurationDaysChange(Number(e.target.value))}
-                    className="care-input"
-                  />
+                  <FormField id="durationDays" label="Duración (días)">
+                    <Input
+                      id="durationDays"
+                      type="number"
+                      min={1}
+                      max={365}
+                      value={durationDays}
+                      onChange={(e) => handleDurationDaysChange(Number(e.target.value))}
+                    />
+                  </FormField>
                 </div>
                 <div>
-                  <label className="mb-1 block text-sm text-care-muted">Fecha de fin</label>
-                  <input
-                    type="date"
-                    value={endDate}
-                    min={startDate}
-                    onChange={(e) => handleEndDateChange(e.target.value)}
-                    className="care-input"
-                  />
+                  <FormField id="endDate" label="Fecha de fin">
+                    <Input
+                      id="endDate"
+                      type="date"
+                      value={endDate}
+                      min={startDate}
+                      onChange={(e) => handleEndDateChange(e.target.value)}
+                    />
+                  </FormField>
                 </div>
               </div>
             )}
@@ -325,36 +327,34 @@ export function MedicationScheduleForm({ elderId, onSuccess }: MedicationSchedul
                 <div className="grid gap-2 sm:grid-cols-2">
                   {times.slice(0, timesPerDay).map((time, index) => (
                     <div key={index}>
-                      <label className="mb-1 block text-sm text-care-muted">
-                        Toma {index + 1}
-                      </label>
-                      <input
-                        type="time"
-                        value={time}
-                        onChange={(e) => {
-                          const next = [...times];
-                          next[index] = e.target.value;
-                          setTimes(next);
-                        }}
-                        required
-                        className="care-input"
-                      />
+                      <FormField id={`dose-time-${index}`} label={`Toma ${index + 1}`}>
+                        <Input
+                          id={`dose-time-${index}`}
+                          type="time"
+                          value={time}
+                          onChange={(e) => {
+                            const next = [...times];
+                            next[index] = e.target.value;
+                            setTimes(next);
+                          }}
+                          required
+                        />
+                      </FormField>
                     </div>
                   ))}
                 </div>
               </>
             ) : (
               <>
-                <div>
-                  <label className="mb-1 block text-sm text-care-muted">Primera toma del día</label>
-                  <input
+                <FormField id="firstDoseTime" label="Primera toma del día">
+                  <Input
+                    id="firstDoseTime"
                     type="time"
                     value={firstDoseTime}
                     onChange={(e) => setFirstDoseTime(e.target.value)}
                     required
-                    className="care-input"
                   />
-                </div>
+                </FormField>
 
                 <p className="text-sm text-care-muted">Repetir cada</p>
                 <div className="flex flex-wrap gap-2">
@@ -375,17 +375,16 @@ export function MedicationScheduleForm({ elderId, onSuccess }: MedicationSchedul
                   ))}
                 </div>
 
-                <div>
-                  <label className="mb-1 block text-sm text-care-muted">Intervalo personalizado (horas)</label>
-                  <input
+                <FormField id="intervalHours" label="Intervalo personalizado (horas)">
+                  <Input
+                    id="intervalHours"
                     type="number"
                     min={1}
                     max={24}
                     value={intervalHours}
                     onChange={(e) => setIntervalHours(Math.min(Math.max(Number(e.target.value) || 1, 1), 24))}
-                    className="care-input"
                   />
-                </div>
+                </FormField>
               </>
             )}
 

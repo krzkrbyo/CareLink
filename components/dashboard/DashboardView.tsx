@@ -104,7 +104,12 @@ export async function DashboardView({ elderId }: DashboardViewProps) {
               icon={Stethoscope}
               title="Próxima cita"
               status={data.nextAppointment.title}
-              detail={formatTime(data.nextAppointment.starts_at)}
+              detail={[
+                data.nextAppointment.facility_name,
+                formatTime(data.nextAppointment.starts_at),
+              ]
+                .filter(Boolean)
+                .join(" · ")}
               variant="pending"
             />
           )}
@@ -113,7 +118,12 @@ export async function DashboardView({ elderId }: DashboardViewProps) {
               icon={CalendarClock}
               title="Próximo examen"
               status={data.nextExam.title}
-              detail={formatTime(data.nextExam.starts_at)}
+              detail={[
+                data.nextExam.facility_name,
+                formatTime(data.nextExam.starts_at),
+              ]
+                .filter(Boolean)
+                .join(" · ")}
               variant="pending"
             />
           )}
@@ -128,8 +138,16 @@ export async function DashboardView({ elderId }: DashboardViewProps) {
       </section>
 
       {data.nextAppointment && (
-        <div className="mb-8">
+        <div className="mb-8 flex flex-wrap gap-3">
           <CalendarExportButton eventId={data.nextAppointment.id} />
+          {data.nextExam && (
+            <CalendarExportButton eventId={data.nextExam.id} label="Exportar examen al calendario" />
+          )}
+        </div>
+      )}
+      {!data.nextAppointment && data.nextExam && (
+        <div className="mb-8">
+          <CalendarExportButton eventId={data.nextExam.id} label="Exportar examen al calendario" />
         </div>
       )}
 

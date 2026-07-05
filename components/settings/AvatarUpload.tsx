@@ -88,7 +88,7 @@ export function AvatarUpload({ name, avatarUrl: initialUrl, elderId }: AvatarUpl
             ref={inputRef}
             type="file"
             accept="image/jpeg,image/png,image/webp,image/gif"
-            className="hidden"
+            className="care-file hidden"
             onChange={handleFileChange}
             disabled={pending}
           />

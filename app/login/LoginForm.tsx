@@ -7,7 +7,9 @@ import { Heart } from "lucide-react";
 import { signIn } from "@/app/actions/auth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { FormField } from "@/components/ui/form-field";
 import { IconBox } from "@/components/ui/icon-box";
+import { Input } from "@/components/ui/input";
 
 export default function LoginForm() {
   const searchParams = useSearchParams();
@@ -42,24 +44,18 @@ export default function LoginForm() {
         </CardHeader>
         <CardContent>
           <form action={handleSubmit} className="space-y-4">
-            <div>
-              <label className="mb-1 block text-sm font-medium text-care-foreground">
-                Correo electrónico
-              </label>
-              <input
+            <FormField id="email" label="Correo electrónico">
+              <Input
+                id="email"
                 name="email"
                 type="email"
                 required
-                className="care-input"
                 placeholder="ana@carelink.app"
               />
-            </div>
-            <div>
-              <label className="mb-1 block text-sm font-medium text-care-foreground">
-                Contraseña
-              </label>
-              <input name="password" type="password" required className="care-input" />
-            </div>
+            </FormField>
+            <FormField id="password" label="Contraseña">
+              <Input id="password" name="password" type="password" required />
+            </FormField>
             {error && (
               <p className="rounded-lg bg-red-50 p-3 text-red-700">{error}</p>
             )}

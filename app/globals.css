@@ -28,13 +28,144 @@ body {
     radial-gradient(ellipse 60% 40% at 100% 100%, color-mix(in srgb, var(--color-care-secondary) 40%, transparent), transparent);
 }
 
+@layer base {
+  select,
+  input,
+  textarea,
+  button {
+    font: inherit;
+  }
+
+  /* Evita estilos nativos inconsistentes en controles sin clase */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+  select,
+  textarea {
+    color-scheme: light;
+  }
+}
+
 @layer utilities {
   .care-surface {
     @apply rounded-2xl border-2 border-care-secondary/60 bg-white shadow-sm;
   }
 
+  /* ── Controles de formulario ── */
   .care-input {
-    @apply w-full rounded-xl border-2 border-care-secondary bg-white p-3 text-lg text-care-foreground transition-colors placeholder:text-care-muted-light focus:border-care-accent focus:outline-none focus:ring-4 focus:ring-care-accent/20;
+    @apply w-full rounded-xl border-2 border-care-secondary bg-white px-4 py-3 text-base text-care-foreground shadow-sm transition-all placeholder:text-care-muted-light;
+    @apply focus:border-care-accent focus:outline-none focus:ring-4 focus:ring-care-accent/20;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+  }
+
+  .care-input-sm {
+    @apply px-3 py-2 text-sm;
+  }
+
+  .care-input-lg {
+    @apply px-4 py-3.5 text-lg;
+  }
+
+  .care-input-disabled {
+    @apply cursor-not-allowed bg-care-primary/50 text-care-muted opacity-70;
+  }
+
+  .care-field-control {
+    @apply w-full;
+  }
+
+  /* Select */
+  .care-select {
+    @apply cursor-pointer pr-11;
+    background-image: none;
+  }
+
+  .care-select option {
+    @apply bg-white text-care-foreground;
+    padding: 0.5rem;
+  }
+
+  .care-select optgroup {
+    @apply bg-white text-care-muted;
+    font-weight: 600;
+  }
+
+  /* Textarea */
+  .care-textarea {
+    @apply min-h-[5.5rem] leading-relaxed;
+  }
+
+  /* Date / time / datetime — ocultar icono nativo y usar el de Lucide */
+  .care-input-picker {
+    @apply cursor-pointer;
+    position: relative;
+  }
+
+  .care-input-picker::-webkit-calendar-picker-indicator {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+
+  .care-input-picker::-webkit-datetime-edit {
+    @apply text-care-foreground;
+  }
+
+  .care-input-picker::-webkit-datetime-edit-fields-wrapper {
+    padding: 0;
+  }
+
+  .care-input-picker::-webkit-datetime-edit-text,
+  .care-input-picker::-webkit-datetime-edit-month-field,
+  .care-input-picker::-webkit-datetime-edit-day-field,
+  .care-input-picker::-webkit-datetime-edit-year-field,
+  .care-input-picker::-webkit-datetime-edit-hour-field,
+  .care-input-picker::-webkit-datetime-edit-minute-field,
+  .care-input-picker::-webkit-datetime-edit-ampm-field {
+    @apply text-care-foreground;
+    padding: 0 0.1em;
+  }
+
+  .care-input-picker::-webkit-datetime-edit-month-field:focus,
+  .care-input-picker::-webkit-datetime-edit-day-field:focus,
+  .care-input-picker::-webkit-datetime-edit-year-field:focus,
+  .care-input-picker::-webkit-datetime-edit-hour-field:focus,
+  .care-input-picker::-webkit-datetime-edit-minute-field:focus {
+    @apply rounded bg-care-accent/20 text-care-foreground outline-none;
+  }
+
+  /* Number — sin spinners nativos */
+  input[type="number"].care-input {
+    -moz-appearance: textfield;
+  }
+
+  input[type="number"].care-input::-webkit-outer-spin-button,
+  input[type="number"].care-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  /* File input */
+  .care-file {
+    @apply w-full cursor-pointer rounded-xl border-2 border-dashed border-care-secondary bg-care-primary/30 px-4 py-4 text-sm text-care-muted transition-colors file:mr-4 file:cursor-pointer file:rounded-lg file:border-0 file:bg-care-accent-dark file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:border-care-accent hover:bg-care-primary/50;
+  }
+
+  .care-file::file-selector-button {
+    @apply mr-4 cursor-pointer rounded-lg border-0 bg-care-accent-dark px-4 py-2 text-sm font-semibold text-white;
+  }
+
+  /* Listas de contenido */
+  .care-list {
+    @apply list-none space-y-2 p-0;
+  }
+
+  .care-list > li {
+    @apply rounded-xl border border-care-secondary/50 bg-white px-4 py-3 text-care-foreground;
   }
 
   .care-gradient-page {
