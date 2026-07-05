@@ -359,10 +359,9 @@ export async function createElderAndLink(data: {
     role: "elder",
   });
 
-  const supabase = await createClient();
-  const slug = await createUniqueElderSlug(supabase, data.fullName);
+  const slug = await createUniqueElderSlug(admin, data.fullName);
 
-  const { data: elder, error: elderError } = await supabase
+  const { data: elder, error: elderError } = await admin
     .from("elders")
     .insert({
       full_name: data.fullName,
@@ -380,14 +379,14 @@ export async function createElderAndLink(data: {
     throw new Error(elderError?.message ?? "Error al registrar la persona");
   }
 
-  const { error: linkError } = await supabase.from("caregiver_elder_links").insert({
+  const { error: linkError } = await admin.from("caregiver_elder_links").insert({
     caregiver_id: user.id,
     elder_id: elder.id,
     relationship: data.relationship,
   });
 
   if (linkError) {
-    await supabase.from("elders").delete().eq("id", elder.id);
+    await admin.from("elders").delete().eq("id", elder.id);
     await admin.auth.admin.deleteUser(authUserId);
     throw new Error(linkError.message);
   }
