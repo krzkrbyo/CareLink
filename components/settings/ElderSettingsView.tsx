@@ -7,6 +7,8 @@ import { IconBox } from "@/components/ui/icon-box";
 import { Card, CardContent } from "@/components/ui/card";
 import { AvatarUpload } from "./AvatarUpload";
 import { ProfileInfoForm } from "./ProfileInfoForm";
+import { CaregiverRelationshipForm } from "./CaregiverRelationshipForm";
+import { DeleteElderSection } from "./DeleteElderSection";
 import { NotificationSettingsForm } from "./NotificationSettingsForm";
 import { PasswordForm } from "./PasswordForm";
 import type { ManagedElderSettings } from "@/lib/settings/types";
@@ -104,6 +106,11 @@ export function ElderSettingsView({ settings }: ElderSettingsViewProps) {
             elderId={settings.elderId}
             managedByCaregiver
           />
+          <CaregiverRelationshipForm
+            elderId={settings.elderId}
+            relationship={settings.relationship}
+          />
+          <DeleteElderSection elderId={settings.elderId} elderName={settings.full_name} />
         </div>
       )}
 

@@ -33,15 +33,19 @@ async function revalidateElderSettings(elderId: string) {
 }
 
 export async function getManagedElderSettings(elderId: string): Promise<ManagedElderSettings> {
-  await requireCaregiverElderAccess(elderId);
+  const { user } = await requireCaregiverElderAccess(elderId);
   const { authUserId } = await getElderAuthUserId(elderId);
 
   const supabase = await createClient();
-  const { data: profile, error } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", authUserId)
-    .single();
+  const [{ data: profile, error }, { data: link }] = await Promise.all([
+    supabase.from("profiles").select("*").eq("id", authUserId).single(),
+    supabase
+      .from("caregiver_elder_links")
+      .select("relationship")
+      .eq("elder_id", elderId)
+      .eq("caregiver_id", user.id)
+      .maybeSingle(),
+  ]);
 
   if (error || !profile) throw new Error("No se pudo cargar el perfil");
 
@@ -56,6 +60,7 @@ export async function getManagedElderSettings(elderId: string): Promise<ManagedE
     avatar_url: profile.avatar_url ?? null,
     phone: profile.phone ?? null,
     bio: profile.bio ?? null,
+    relationship: link?.relationship ?? null,
     notification_settings: parseNotificationSettings(profile.notification_settings),
     hasAuthAccount: true,
   };
@@ -199,4 +204,74 @@ export async function updateManagedElderPassword(elderId: string, formData: Form
 
 export async function resetManagedElderNotifications(elderId: string) {
   return updateManagedElderNotifications(elderId, DEFAULT_NOTIFICATION_SETTINGS);
+}
+
+export async function updateManagedElderRelationship(elderId: string, relationship: string) {
+  const { user } = await requireCaregiverElderAccess(elderId);
+  const trimmed = relationship.trim();
+  if (!trimmed) {
+    throw new Error("Indique qué eres para esta persona");
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("caregiver_elder_links")
+    .update({ relationship: trimmed })
+    .eq("elder_id", elderId)
+    .eq("caregiver_id", user.id);
+
+  if (error) throw new Error(error.message);
+
+  revalidateElderSettings(elderId);
+  return { success: true };
+}
+
+export async function deleteManagedElder(elderId: string) {
+  const { user } = await requireCaregiverElderAccess(elderId);
+  const supabase = await createClient();
+  const admin = createAdminClient();
+
+  const { data: elder, error: fetchError } = await supabase
+    .from("elders")
+    .select("auth_user_id, full_name")
+    .eq("id", elderId)
+    .single();
+
+  if (fetchError || !elder) {
+    throw new Error("No se encontró la persona a cargo");
+  }
+
+  const { data: link } = await supabase
+    .from("caregiver_elder_links")
+    .select("id")
+    .eq("elder_id", elderId)
+    .eq("caregiver_id", user.id)
+    .maybeSingle();
+
+  if (!link) {
+    throw new Error("No tiene permiso para eliminar esta persona");
+  }
+
+  const authUserId = elder.auth_user_id;
+
+  const { error: deleteError } = await admin.from("elders").delete().eq("id", elderId);
+  if (deleteError) throw new Error(deleteError.message);
+
+  if (authUserId) {
+    const { data: avatarFiles } = await admin.storage
+      .from("carelink-avatars")
+      .list(authUserId);
+    if (avatarFiles?.length) {
+      await admin.storage
+        .from("carelink-avatars")
+        .remove(avatarFiles.map((f) => `${authUserId}/${f.name}`));
+    }
+
+    await admin.from("profiles").delete().eq("id", authUserId);
+    await admin.auth.admin.deleteUser(authUserId);
+  }
+
+  revalidatePath("/cuidador", "layout");
+  revalidatePath("/adulto", "layout");
+  return { success: true, elderName: elder.full_name };
 }

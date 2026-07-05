@@ -8,6 +8,7 @@ import {
   parseMedicationSchedule,
 } from "@/lib/medications/schedule";
 import { EXAM_SUBTYPE_LABELS } from "@/lib/appointments/types";
+import { fetchElderCaregivers, type ElderCaregiverView } from "@/lib/data/elder-caregivers";
 import type { Appointment, FoodRule, Medication } from "@/types/database";
 
 export interface ElderMedicationView {
@@ -88,6 +89,8 @@ export interface ElderCarePlan {
   featuredMedicationDoses: ElderAgendaItem[];
   meals: ElderMealView[];
   routineActivities: ElderRoutineView[];
+  caregivers: ElderCaregiverView[];
+  emergencyContact: string | null;
 }
 
 const FOOD_TYPE_LABELS: Record<FoodRule["type"], string> = {
@@ -265,22 +268,24 @@ function buildMealViews(
   now: Date
 ): ElderMealView[] {
   const mealReminders = reminders.filter((r) => MEAL_ORDER.includes(r.title as (typeof MEAL_ORDER)[number]));
+  const meals: ElderMealView[] = [];
 
-  return MEAL_ORDER.map((label) => {
+  for (const label of MEAL_ORDER) {
     const reminder = mealReminders.find((r) => r.title === label);
-    if (!reminder) {
-      return null;
-    }
+    if (!reminder) continue;
+
     const due = reminder.due_at ? new Date(reminder.due_at) : now;
-    return {
+    meals.push({
       id: reminder.id,
       label,
       timeLabel: due.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" }),
       dueAt: reminder.due_at ?? now.toISOString(),
       status: reminder.status as ElderMealView["status"],
       message: reminder.message_text,
-    };
-  }).filter((m): m is ElderMealView => m !== null);
+    });
+  }
+
+  return meals;
 }
 
 function buildRoutineViews(
@@ -320,8 +325,13 @@ export async function fetchElderCarePlan(
   const startOfToday = new Date(now);
   startOfToday.setHours(0, 0, 0, 0);
 
-  const [{ data: medications }, { data: appointments }, { data: foodRules }, { data: reminders }] =
-    await Promise.all([
+  const [
+    { data: medications },
+    { data: appointments },
+    { data: foodRules },
+    { data: reminders },
+    { data: elderRow },
+  ] = await Promise.all([
       supabase
         .from("medications")
         .select("*")
@@ -344,7 +354,18 @@ export async function fetchElderCarePlan(
         .eq("elder_id", elderId)
         .in("type", ["meal", "activity", "hydration"])
         .order("due_at"),
+      supabase
+        .from("elders")
+        .select("main_caregiver_name, emergency_contact")
+        .eq("id", elderId)
+        .single(),
     ]);
+
+  const caregivers = await fetchElderCaregivers(
+    elderId,
+    supabase,
+    elderRow?.main_caregiver_name
+  );
 
   const apptList = (appointments ?? []) as Appointment[];
   const facilityIds = apptList.map((a) => a.facility_id).filter(Boolean) as string[];
@@ -411,5 +432,7 @@ export async function fetchElderCarePlan(
     featuredMedicationDoses: buildFeaturedMedicationDoses(activeMeds as Medication[], now),
     meals: buildMealViews(reminders ?? [], now),
     routineActivities: buildRoutineViews(reminders ?? []),
+    caregivers,
+    emergencyContact: elderRow?.emergency_contact ?? null,
   };
 }
