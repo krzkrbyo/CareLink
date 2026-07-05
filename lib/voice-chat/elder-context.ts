@@ -1,4 +1,5 @@
 import { fetchElderCarePlan, type ElderCarePlan } from "@/lib/data/elder-care-plan";
+import { formatCaregiversForChatContext } from "@/lib/data/elder-caregivers";
 import { createClient } from "@/lib/supabase/server";
 import {
   formatCurrentDateTimeForContext,
@@ -84,15 +85,13 @@ export function formatElderChatContext(
     sections.push(`Actividades de rutina: ${activities}.`);
   }
 
-  const family: string[] = [];
-  if (elder.main_caregiver_name) {
-    family.push(`su cuidador/a principal es ${elder.main_caregiver_name}`);
-  }
-  if (elder.emergency_contact) {
-    family.push(`contacto de emergencia: ${elder.emergency_contact}`);
-  }
-  if (family.length) {
-    sections.push(`Familia y cuidadores: ${family.join("; ")}.`);
+  const familyContext = formatCaregiversForChatContext(
+    plan.caregivers,
+    elder.main_caregiver_name,
+    plan.emergencyContact ?? elder.emergency_contact
+  );
+  if (familyContext) {
+    sections.push(`Quién le cuida: ${familyContext}.`);
   }
 
   if (plan.featuredMedicationDoses.length) {

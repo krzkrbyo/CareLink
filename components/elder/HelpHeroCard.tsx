@@ -8,9 +8,11 @@ interface HelpHeroCardProps {
   onHelp: () => void;
   loading?: boolean;
   className?: string;
+  /** Ej: "Ana, su hija" o "Carlos, su enfermero" */
+  caregiverHint?: string | null;
 }
 
-export function HelpHeroCard({ onHelp, loading, className }: HelpHeroCardProps) {
+export function HelpHeroCard({ onHelp, loading, className, caregiverHint }: HelpHeroCardProps) {
   return (
     <article
       className={cn(
@@ -24,7 +26,9 @@ export function HelpHeroCard({ onHelp, loading, className }: HelpHeroCardProps) 
       <div className="text-center">
         <h2 className="text-3xl font-bold text-red-800 lg:text-4xl">¿Necesita ayuda?</h2>
         <p className="mt-2 max-w-md text-lg text-red-700/80">
-          Presione el botón para avisar a su familia de inmediato
+          {caregiverHint
+            ? `Presione el botón para avisar a ${caregiverHint} de inmediato`
+            : "Presione el botón para avisar a quien le cuida de inmediato"}
         </p>
       </div>
       <Button

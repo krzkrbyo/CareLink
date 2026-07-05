@@ -77,11 +77,24 @@ export function AddElderForm() {
               max={120}
               placeholder="Edad"
             />
-            <Input
-              name="relationship"
-              required
-              placeholder="Relación contigo (ej: padre, madre, tío)"
-            />
+            <div>
+              <label htmlFor="elder-relationship" className="mb-1 block text-sm font-semibold text-care-foreground">
+                ¿Qué eres para esta persona?
+              </label>
+              <Input
+                id="elder-relationship"
+                name="relationship"
+                required
+                placeholder="Ej: hija, enfermera, enfermero, cuidador, asistente"
+              />
+              <p className="mt-1 text-xs text-care-muted">
+                Escríbalo como lo diría el adulto mayor: puede ser un parentesco ({" "}
+                <strong>hija</strong>, <strong>nieto</strong>), un rol profesional (
+                <strong>enfermera</strong>, <strong>enfermero</strong>, <strong>cuidador</strong>) u otra
+                persona de confianza. CareLink lo usará para decir, por ejemplo: «Ana es su hija» o «Carlos es
+                su enfermero».
+              </p>
+            </div>
             <Input
               name="emergencyContact"
               placeholder="Contacto de emergencia (opcional)"

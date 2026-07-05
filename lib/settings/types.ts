@@ -47,6 +47,7 @@ export interface ManagedElderSettings {
   avatar_url: string | null;
   phone: string | null;
   bio: string | null;
+  relationship: string | null;
   notification_settings: NotificationSettings;
   hasAuthAccount: boolean;
 }

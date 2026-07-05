@@ -44,7 +44,9 @@ import {
   hasMoreAppointments,
   hasMoreMedications,
 } from "@/lib/data/elder-care-plan-helpers";
+import { getPrimaryCaregiverHint } from "@/lib/data/elder-caregivers";
 import { elderSectionHref, parseElderSection } from "@/lib/elder-nav";
+import { ElderCaregiversCard } from "@/components/elder/ElderCaregiversCard";
 
 interface AdultoPortalProps {
   elderName: string;
@@ -69,6 +71,7 @@ export function AdultoPortal({ elderName, carePlan }: AdultoPortalProps) {
 
   const featuredAppointments = getFeaturedAppointments(carePlan.appointments);
   const featuredDoses = getFeaturedMedicationDoses(carePlan);
+  const caregiverHint = getPrimaryCaregiverHint(carePlan.caregivers);
 
   function navigate(id: string) {
     router.push(elderSectionHref(id));
@@ -112,8 +115,13 @@ export function AdultoPortal({ elderName, carePlan }: AdultoPortalProps) {
         return (
           <div className="space-y-6">
             <HelpHeroCard
-              onHelp={() => act(requestHelp, "Ayuda enviada a su familia")}
+              onHelp={() => act(requestHelp, "Ayuda enviada a quien le cuida")}
               loading={pending}
+              caregiverHint={caregiverHint}
+            />
+            <ElderCaregiversCard
+              caregivers={carePlan.caregivers}
+              emergencyContact={carePlan.emergencyContact}
             />
             <div className="grid gap-6 lg:grid-cols-2">
               {medicationCard}
@@ -175,7 +183,15 @@ export function AdultoPortal({ elderName, carePlan }: AdultoPortalProps) {
             <SectionHeader
               icon={MessageCircleHeart}
               title="Su tortuguita acompañante"
-              description="Hable con su tortuguita de CareLink. Escuchará su voz, le responderá por escrito y con audio."
+              description={
+                caregiverHint
+                  ? `Hable con su tortuguita de CareLink. Conoce su plan del día y que ${caregiverHint} es quien coordina su cuidado.`
+                  : "Hable con su tortuguita de CareLink. Escuchará su voz, le responderá por escrito y con audio."
+              }
+            />
+            <ElderCaregiversCard
+              caregivers={carePlan.caregivers}
+              emergencyContact={carePlan.emergencyContact}
             />
             <VoiceChatCompanion elderName={elderName} />
           </div>
