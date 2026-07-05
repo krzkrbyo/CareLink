@@ -174,8 +174,8 @@ export function AdultoPortal({ elderName, carePlan }: AdultoPortalProps) {
           <div className="space-y-6">
             <SectionHeader
               icon={MessageCircleHeart}
-              title="Su acompañante de voz"
-              description="Hable con CareLink. Escuchará su voz, le responderá por escrito y con audio."
+              title="Su tortuguita acompañante"
+              description="Hable con su tortuguita de CareLink. Escuchará su voz, le responderá por escrito y con audio."
             />
             <VoiceChatCompanion elderName={elderName} />
           </div>

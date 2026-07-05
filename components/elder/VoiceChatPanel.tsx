@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { Loader2, Mic, MicOff, Volume2, X } from "lucide-react";
+import { Loader2, Mic, MicOff, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { VoiceChatAvatar } from "@/components/elder/VoiceChatAvatar";
 import { useVoiceChat } from "@/components/elder/voice-chat-context";
 import { cn } from "@/lib/utils";
 
@@ -23,6 +24,7 @@ export function VoiceChatPanel({ variant = "embedded", onClose }: VoiceChatPanel
 
   const chatEndRef = useRef<HTMLDivElement>(null);
   const busy = status === "processing" || status === "speaking";
+  const avatarSize = variant === "embedded" ? "size-36" : "size-28";
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -36,14 +38,9 @@ export function VoiceChatPanel({ variant = "embedded", onClose }: VoiceChatPanel
       )}
     >
       <div className="flex items-center justify-between border-b border-care-secondary/50 bg-care-primary/40 px-4 py-3">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-care-accent/30 text-care-accent-darker">
-            <Volume2 className="h-5 w-5" />
-          </div>
-          <div>
-            <h3 className="text-lg font-bold text-care-foreground">CareLink</h3>
-            <p className="text-sm text-care-muted">Acompañante de voz</p>
-          </div>
+        <div>
+          <h3 className="text-lg font-bold text-care-foreground">Su tortuguita CareLink</h3>
+          <p className="text-sm text-care-muted">Acompañante de voz</p>
         </div>
         {variant === "floating" && onClose && (
           <button
@@ -59,35 +56,53 @@ export function VoiceChatPanel({ variant = "embedded", onClose }: VoiceChatPanel
 
       <div
         className={cn(
-          "flex flex-col gap-3 overflow-y-auto px-4 py-4",
+          "flex min-h-[12rem] gap-3 overflow-hidden px-4 py-4",
           variant === "embedded"
             ? "max-h-[min(24rem,50vh)]"
-            : "min-h-[14rem] flex-1 max-h-[50vh]"
+            : "min-h-[14rem] flex-1 max-h-[42vh]"
         )}
       >
-        {messages.map((msg) => (
-          <div
-            key={msg.id}
+        <div
+          className={cn(
+            "flex min-w-0 flex-1 flex-col gap-3 overflow-y-auto pr-1",
+            variant === "embedded" ? "max-h-[calc(min(24rem,50vh)-2rem)]" : "max-h-[calc(42vh-2rem)]"
+          )}
+        >
+          {messages.map((msg) => (
+            <div
+              key={msg.id}
+              className={cn(
+                "max-w-[90%] rounded-2xl px-4 py-3 text-base leading-relaxed",
+                msg.role === "user"
+                  ? "ml-auto bg-care-accent-dark text-white"
+                  : "mr-auto border-2 border-care-secondary/60 bg-care-primary/30 text-care-foreground"
+              )}
+            >
+              <p className="mb-0.5 text-xs font-semibold uppercase tracking-wide opacity-75">
+                {msg.role === "user" ? "Usted" : "Tortuguita"}
+              </p>
+              <p>{msg.content}</p>
+            </div>
+          ))}
+          {busy && status === "processing" && (
+            <div className="mr-auto flex max-w-[85%] items-center gap-2 rounded-2xl border-2 border-care-secondary/60 bg-white px-4 py-2 text-care-muted">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span className="text-sm font-medium">{statusLabel}</span>
+            </div>
+          )}
+          <div ref={chatEndRef} />
+        </div>
+
+        <div className="shrink-0">
+          <VoiceChatAvatar
+            status={status}
+            variant="corner"
             className={cn(
-              "max-w-[90%] rounded-2xl px-4 py-3 text-base leading-relaxed",
-              msg.role === "user"
-                ? "ml-auto bg-care-accent-dark text-white"
-                : "mr-auto border-2 border-care-secondary/60 bg-care-primary/30 text-care-foreground"
+              "rounded-2xl border-2 border-care-secondary/60 shadow-md",
+              avatarSize
             )}
-          >
-            <p className="mb-0.5 text-xs font-semibold uppercase tracking-wide opacity-75">
-              {msg.role === "user" ? "Usted" : "CareLink"}
-            </p>
-            <p>{msg.content}</p>
-          </div>
-        ))}
-        {busy && (
-          <div className="mr-auto flex items-center gap-2 rounded-2xl border-2 border-care-secondary/60 bg-white px-4 py-2 text-care-muted">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            <span className="text-sm font-medium">{statusLabel}</span>
-          </div>
-        )}
-        <div ref={chatEndRef} />
+          />
+        </div>
       </div>
 
       {error && (

@@ -42,10 +42,10 @@ function getRecorderMimeType(): string | undefined {
 }
 
 const STATUS_LABELS: Record<ChatStatus, string> = {
-  idle: "Presione para hablar",
+  idle: "Presione para hablar con su tortuguita",
   recording: "Escuchando… Toque para enviar",
-  processing: "Procesando…",
-  speaking: "CareLink está respondiendo…",
+  processing: "Su tortuguita está pensando…",
+  speaking: "Su tortuguita le está respondiendo…",
 };
 
 export function VoiceChatProvider({
@@ -60,7 +60,7 @@ export function VoiceChatProvider({
     {
       id: "welcome",
       role: "assistant",
-      content: `Hola, ${firstName}. Soy CareLink. Presione el micrófono y hable conmigo.`,
+      content: `Hola, ${firstName}. Soy su tortuguita de CareLink. Presione el micrófono y hable conmigo.`,
     },
   ]);
   const [status, setStatus] = useState<ChatStatus>("idle");
